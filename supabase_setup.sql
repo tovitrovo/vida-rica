@@ -56,6 +56,35 @@ create table if not exists public.transactions (
     created_at          timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------------------------
+-- 3.1. AUTOCORREÇÃO DE SCHEMA (idempotência)
+--      Se as tabelas já existiam de versões anteriores com um schema diferente,
+--      os CREATE acima foram ignorados. Garantimos aqui que TODAS as colunas
+--      existam ANTES de qualquer índice ou política referenciá-las.
+-- ----------------------------------------------------------------------------
+alter table public.profiles add column if not exists email      text;
+alter table public.profiles add column if not exists full_name  text;
+alter table public.profiles add column if not exists whatsapp   text;
+alter table public.profiles add column if not exists role       text    not null default 'client';
+alter table public.profiles add column if not exists is_premium boolean not null default false;
+alter table public.profiles add column if not exists group_id   uuid;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
+
+alter table public.cards add column if not exists user_id    uuid references auth.users (id) on delete cascade;
+alter table public.cards add column if not exists name       text;
+alter table public.cards add column if not exists type       text not null default 'credit';
+alter table public.cards add column if not exists created_at timestamptz not null default now();
+
+alter table public.transactions add column if not exists user_id             uuid references auth.users (id) on delete cascade;
+alter table public.transactions add column if not exists group_id            uuid;
+alter table public.transactions add column if not exists type                text not null default 'free';
+alter table public.transactions add column if not exists amount              numeric(14, 2) not null default 0;
+alter table public.transactions add column if not exists description         text;
+alter table public.transactions add column if not exists card_id             uuid references public.cards (id) on delete set null;
+alter table public.transactions add column if not exists current_installment int not null default 1;
+alter table public.transactions add column if not exists total_installments  int not null default 1;
+alter table public.transactions add column if not exists created_at          timestamptz not null default now();
+
 -- Índices para acelerar as consultas do dashboard
 create index if not exists idx_transactions_user_id  on public.transactions (user_id);
 create index if not exists idx_transactions_group_id on public.transactions (group_id);
