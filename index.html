@@ -82,6 +82,60 @@
         <p class="text-center text-[10px] text-slate-400 font-medium">Feito com orgulho para indivíduos, casais e trisais. 🏳️‍🌈</p>
     </section>
 
+    <!-- ===================== ESCOLHA DE PLANO (ASSINATURA) ===================== -->
+    <section id="screen-plans" class="screen max-w-sm w-full mx-auto px-6 py-10 flex flex-col justify-center min-h-screen space-y-5">
+        <div class="text-center space-y-2">
+            <div class="w-14 h-14 bg-gradient-to-tr from-purple-700 to-indigo-800 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-purple-300/40">
+                <i class="fa-solid fa-gem text-xl"></i>
+            </div>
+            <h1 class="font-black text-xl text-slate-800 tracking-tight">Escolha seu plano</h1>
+            <p class="text-[11px] text-slate-400 font-medium leading-snug">Para começar sua Vida Rica, ative uma assinatura.<br>Você pode cancelar quando quiser.</p>
+            <div class="pride-bar h-1 w-16 rounded-full mx-auto"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100 space-y-4">
+            <!-- Tipo de conta -->
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Tipo de conta</label>
+                <div id="plan-type-group" class="grid grid-cols-3 gap-2">
+                    <button type="button" data-account="individual" class="plan-type-btn py-2.5 rounded-xl text-[11px] font-bold border bg-purple-700 text-white border-purple-700">Individual</button>
+                    <button type="button" data-account="couple" class="plan-type-btn py-2.5 rounded-xl text-[11px] font-bold border bg-slate-50 text-slate-500 border-slate-200">Casal</button>
+                    <button type="button" data-account="throuple" class="plan-type-btn py-2.5 rounded-xl text-[11px] font-bold border bg-slate-50 text-slate-500 border-slate-200">Trisal</button>
+                </div>
+            </div>
+
+            <!-- Mentoria -->
+            <label class="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100 cursor-pointer">
+                <span class="text-[11px] font-bold text-slate-600 flex items-center gap-1.5"><i class="fa-solid fa-user-graduate text-purple-600"></i> Incluir mentoria mensal (1h)</span>
+                <input type="checkbox" id="plan-mentorship" class="w-5 h-5 accent-purple-700">
+            </label>
+
+            <!-- Preço -->
+            <div class="text-center bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-2xl border border-purple-100">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Valor mensal</span>
+                <span id="plan-price" class="text-3xl font-black text-purple-800">R$ 0,00</span>
+                <span class="text-[10px] text-slate-400 font-medium block">cobrança recorrente via Mercado Pago</span>
+            </div>
+
+            <button id="btn-subscribe" type="button" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 text-white font-bold py-3 rounded-xl text-xs shadow-md shadow-purple-300/40 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                <i class="fa-solid fa-lock"></i> Assinar e começar
+            </button>
+            <button id="btn-plans-refresh" type="button" class="w-full text-[10px] text-slate-400 font-bold underline">Já paguei — atualizar meu acesso</button>
+        </div>
+
+        <!-- Entrar por convite (parceiro de um plano casal/trisal) -->
+        <div class="bg-white p-4 rounded-3xl shadow-xl border border-slate-100 space-y-2.5">
+            <p class="text-[11px] font-bold text-slate-600 flex items-center gap-1.5"><i class="fa-solid fa-heart text-rose-500"></i> Recebi um convite</p>
+            <p class="text-[10px] text-slate-400 font-medium leading-snug">Se seu par já assina um plano de casal ou trisal, cole o código dele para entrar no grupo sem pagar de novo.</p>
+            <div class="flex items-center gap-2">
+                <input type="text" id="plans-invite-token" placeholder="Cole o código do convite" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-[11px] text-center font-mono outline-none bg-slate-50 focus:border-rose-400">
+                <button id="btn-plans-join" type="button" class="bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold px-3 py-2 rounded-xl text-[11px] shrink-0">Entrar</button>
+            </div>
+        </div>
+
+        <button id="btn-plans-logout" type="button" class="text-center text-[10px] text-slate-400 font-medium underline">Sair desta conta</button>
+    </section>
+
     <!-- ===================== ÁREA LOGADA ===================== -->
     <div id="screen-app" class="screen">
         <!-- HEADER ROXO (estrutural) -->
@@ -97,6 +151,7 @@
                 </div>
                 <div class="flex items-center space-x-2">
                     <span id="badge-role" class="bg-white/15 text-amber-300 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border border-white/20">Membro</span>
+                    <button id="btn-open-admin" class="hidden p-2 rounded-xl hover:bg-white/10 text-amber-300" title="Painel de administração"><i class="fa-solid fa-gauge-high text-sm"></i></button>
                     <button id="btn-logout" class="p-2 rounded-xl hover:bg-white/10 text-purple-100"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
                 </div>
             </div>
@@ -131,9 +186,11 @@
             </div>
 
             <!-- NAVEGAÇÃO ENTRE ABAS -->
-            <div class="bg-slate-200/60 p-1 rounded-2xl grid grid-cols-3 text-center text-[11px] font-bold text-slate-500">
+            <div class="bg-slate-200/60 p-1 rounded-2xl grid grid-cols-5 text-center text-[10px] font-bold text-slate-500">
                 <button id="nav-btn-launch" class="py-2 bg-sky-500 text-white rounded-xl shadow-sm">Lançar</button>
                 <button id="nav-btn-cards" class="py-2 rounded-xl">Cartões</button>
+                <button id="nav-btn-wishes" class="py-2 rounded-xl">Desejos</button>
+                <button id="nav-btn-mentorship" class="py-2 rounded-xl hidden">Mentoria</button>
                 <button id="nav-btn-partner" class="py-2 rounded-xl">Parceria</button>
             </div>
 
@@ -210,6 +267,43 @@
                 <div id="cards-list" class="space-y-2 pt-2 text-xs"></div>
             </div>
 
+            <!-- ABA: DESEJOS -->
+            <div id="panel-wishes" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-star text-amber-500"></i><span>Meus Desejos</span></h4>
+                <p class="text-[10px] text-slate-400 font-medium leading-snug -mt-2">Planeje o que você quer conquistar. O app calcula se cabe no seu bolso e em quanto tempo, com base na sua sobra mensal.</p>
+
+                <form id="form-wish" class="space-y-3">
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">O que você deseja?</label>
+                        <input type="text" id="wish-title" required placeholder="Ex: PlayStation 5, Viagem, Reserva..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Valor (R$)</label>
+                            <input type="number" step="0.01" min="0" id="wish-amount" required placeholder="0,00" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-bold focus:border-purple-400">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Tipo</label>
+                            <select id="wish-scope" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium focus:border-purple-400">
+                                <option value="personal">Pessoal</option>
+                                <option value="shared">Compartilhado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Adicionar Desejo</button>
+                </form>
+
+                <div id="wishes-list" class="space-y-2.5 pt-2"></div>
+            </div>
+
+            <!-- ABA: MENTORIA -->
+            <div id="panel-mentorship" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-user-graduate"></i><span>Mentoria Mensal</span></h4>
+                <div id="mentorship-next" class="hidden bg-emerald-50 border border-emerald-100 p-3 rounded-2xl text-[11px] text-emerald-700 font-bold"></div>
+                <p class="text-[10px] text-slate-400 font-medium leading-snug -mt-1">Sua assinatura inclui uma sessão de 1 hora por mês. Escolha um horário disponível abaixo.</p>
+                <div id="mentorship-slots" class="space-y-2"></div>
+            </div>
+
             <!-- ABA 3: PARCERIA (CASAL / TRISAL) -->
             <div id="panel-partner" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 hidden">
                 <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-heart text-rose-500"></i><span>Vincular Conta do Parceiro</span></h4>
@@ -233,6 +327,60 @@
         </main>
     </div>
 
+    <!-- ===================== PAINEL DE ADMINISTRAÇÃO ===================== -->
+    <div id="screen-admin" class="screen">
+        <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg sticky top-0 z-40">
+            <div class="pride-bar h-1 w-full"></div>
+            <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="bg-amber-400 text-slate-900 p-2 rounded-xl shadow"><i class="fa-solid fa-gauge-high text-base"></i></div>
+                    <div>
+                        <h1 class="font-black text-base tracking-tight leading-none">Administração</h1>
+                        <span class="text-[10px] text-slate-300 font-medium">Vida Rica · Painel</span>
+                    </div>
+                </div>
+                <button id="btn-admin-back" class="p-2 rounded-xl hover:bg-white/10 text-slate-200" title="Voltar ao app"><i class="fa-solid fa-arrow-left text-sm"></i></button>
+            </div>
+        </header>
+
+        <main class="max-w-md w-full mx-auto px-4 space-y-4 pt-4">
+            <!-- Navegação admin -->
+            <div class="bg-slate-200/60 p-1 rounded-2xl grid grid-cols-3 text-center text-[11px] font-bold text-slate-500">
+                <button id="adm-nav-clients" class="py-2 bg-slate-800 text-white rounded-xl shadow-sm">Clientes</button>
+                <button id="adm-nav-prices" class="py-2 rounded-xl">Preços</button>
+                <button id="adm-nav-mentorship" class="py-2 rounded-xl">Horários</button>
+            </div>
+
+            <!-- ABA ADMIN: CLIENTES -->
+            <div id="adm-panel-clients" class="adm-panel bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                <h4 class="font-extrabold text-sm text-slate-800 flex items-center justify-between">
+                    <span><i class="fa-solid fa-users mr-1.5 text-purple-600"></i>Clientes</span>
+                    <span id="adm-clients-count" class="text-[10px] text-slate-400 font-bold">0</span>
+                </h4>
+                <div id="adm-clients-list" class="space-y-2 text-xs"></div>
+            </div>
+
+            <!-- ABA ADMIN: PREÇOS -->
+            <div id="adm-panel-prices" class="adm-panel bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hidden">
+                <h4 class="font-extrabold text-sm text-slate-800"><i class="fa-solid fa-tags mr-1.5 text-purple-600"></i>Preços dos Planos</h4>
+                <p class="text-[10px] text-slate-400 font-medium -mt-1">Valores mensais cobrados em cada combinação de plano.</p>
+                <div id="adm-prices-list" class="space-y-2"></div>
+                <button id="btn-save-prices" type="button" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98] mt-1">Salvar Preços</button>
+            </div>
+
+            <!-- ABA ADMIN: HORÁRIOS DE MENTORIA -->
+            <div id="adm-panel-mentorship" class="adm-panel bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hidden">
+                <h4 class="font-extrabold text-sm text-slate-800"><i class="fa-solid fa-calendar-plus mr-1.5 text-purple-600"></i>Horários de Mentoria</h4>
+                <form id="form-slot" class="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <label class="block text-[9px] font-bold text-slate-400 uppercase">Novo horário disponível (1h)</label>
+                    <input type="datetime-local" id="slot-datetime" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Abrir Horário</button>
+                </form>
+                <div id="adm-slots-list" class="space-y-2 pt-1"></div>
+            </div>
+        </main>
+    </div>
+
     <!-- TOASTS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
@@ -241,9 +389,18 @@
         const SUPABASE_URL = "https://ndgxuhakaqycnmojopae.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ3h1aGFrYXF5Y25tb2pvcGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjA2OTYsImV4cCI6MjA5Nzg5NjY5Nn0.Yv65UnxSeUxTJlB53zu3nD36lOqWT0Kzf7inzza2Rrs";
 
+        const FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+        const ADMIN_EMAILS = ['victortrovo@me.com', 'contato@77estudio.com'];
+
         let supabase = null;
         let activeUser = null;     // session.user
         let myGroupId = null;      // id usado para consolidar a parceria
+        let myProfile = null;      // linha de public.profiles do usuário
+        let mySubscription = null; // assinatura ativa/pendente do grupo
+        let isAdmin = false;       // e-mail consta em ADMIN_EMAILS
+        let planPrices = {};       // mapa "accountType|mentorship" -> amount
+        let selectedAccount = 'individual'; // seleção na tela de planos
+        let monthlySurplus = 0;    // sobra mensal (renda - saídas) p/ viabilidade de desejos
 
         // ===================== UTILITÁRIOS =====================
         const moneyBR = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
@@ -293,11 +450,12 @@
             // Dados de fallback retirados imediatamente do metadata da sessão.
             const meta = session.user.user_metadata || {};
             const fallbackName = meta.full_name || (session.user.email ? session.user.email.split('@')[0] : "Membro Ativo");
-            const isAdmin = (session.user.email || "").toLowerCase() === 'victortrovo@me.com';
+            isAdmin = ADMIN_EMAILS.includes((session.user.email || "").toLowerCase());
 
             // Aplica o fallback ANTES de tentar o banco — a tela nunca trava em branco.
             document.getElementById("app-user-name").innerText = fallbackName;
             document.getElementById("badge-role").innerText = isAdmin ? "Admin" : "Membro";
+            document.getElementById("btn-open-admin").classList.toggle("hidden", !isAdmin);
             myGroupId = session.user.id;
 
             // CONTINGÊNCIA CRÍTICA: leitura de perfil com timeout (anti-loop).
@@ -308,14 +466,36 @@
                 const { data: profile } = await Promise.race([profilePromise, timeout]);
 
                 if (profile) {
+                    myProfile = profile;
                     myGroupId = profile.group_id || session.user.id;
                     document.getElementById("app-user-name").innerText = profile.full_name || fallbackName;
                     document.getElementById("badge-role").innerText = (profile.role || (isAdmin ? "admin" : "client"));
+                    if (profile.role === 'admin') isAdmin = true;
+                    document.getElementById("btn-open-admin").classList.toggle("hidden", !isAdmin);
                 }
             } catch (_) {
                 /* mantém o fallback — não bloqueia a renderização */
             }
 
+            // Carrega os preços (tela de planos) e a assinatura do grupo.
+            await loadPlanPrices();
+            await fetchSubscription();
+
+            // Admin acessa sempre; cliente precisa de assinatura ativa.
+            if (isAdmin || (mySubscription && mySubscription.status === 'active')) {
+                enterApp();
+            } else {
+                renderPlanScreen();
+                showScreen("screen-plans");
+            }
+        }
+
+        // Decide o que mostrar e carrega os dados do app já liberado.
+        function enterApp() {
+            const hasMentorship = isAdmin ||
+                (mySubscription && mySubscription.with_mentorship && mySubscription.status === 'active');
+            document.getElementById("nav-btn-mentorship").classList.toggle("hidden", !hasMentorship);
+            switchTab('panel-launch', 'nav-btn-launch');
             showScreen("screen-app");
             loadAppData();
         }
@@ -323,6 +503,81 @@
         function loadAppData() {
             fetchDashboardAndTransactions();
             fetchCards();
+            fetchWishes();
+            const hasMentorship = isAdmin ||
+                (mySubscription && mySubscription.with_mentorship && mySubscription.status === 'active');
+            if (hasMentorship) fetchMentorshipClient();
+        }
+
+        // ===================== ASSINATURA / PLANOS =====================
+        async function loadPlanPrices() {
+            try {
+                const { data } = await supabase.from('plan_prices').select('*');
+                planPrices = {};
+                (data || []).forEach(p => {
+                    planPrices[`${p.account_type}|${p.with_mentorship}`] = Number(p.amount);
+                });
+            } catch (_) { planPrices = {}; }
+        }
+
+        async function fetchSubscription() {
+            mySubscription = null;
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { data } = await supabase
+                    .from('subscriptions')
+                    .select('*')
+                    .or(`user_id.eq.${activeUser.id},group_id.eq.${searchId}`)
+                    .order('created_at', { ascending: false });
+                const rows = data || [];
+                // Prioriza uma assinatura ativa; senão pega a mais recente.
+                mySubscription = rows.find(r => r.status === 'active') || rows[0] || null;
+            } catch (_) { mySubscription = null; }
+        }
+
+        function priceFor(account, mentorship) {
+            const v = planPrices[`${account}|${mentorship}`];
+            return typeof v === 'number' ? v : 0;
+        }
+
+        function renderPlanScreen() {
+            // Botões de tipo de conta
+            document.querySelectorAll('.plan-type-btn').forEach(btn => {
+                const active = btn.dataset.account === selectedAccount;
+                btn.className = `plan-type-btn py-2.5 rounded-xl text-[11px] font-bold border ${active ? 'bg-purple-700 text-white border-purple-700' : 'bg-slate-50 text-slate-500 border-slate-200'}`;
+            });
+            const mentorship = document.getElementById('plan-mentorship').checked;
+            document.getElementById('plan-price').innerText = moneyBR(priceFor(selectedAccount, mentorship));
+        }
+
+        async function subscribeNow() {
+            const mentorship = document.getElementById('plan-mentorship').checked;
+            const btn = document.getElementById('btn-subscribe');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando checkout...';
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const resp = await fetch(`${FUNCTIONS_URL}/mp-create-subscription`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'apikey': SUPABASE_KEY
+                    },
+                    body: JSON.stringify({ account_type: selectedAccount, with_mentorship: mentorship })
+                });
+                const out = await resp.json();
+                if (!resp.ok || !out.init_point) {
+                    showToast(out.error || 'Não foi possível iniciar o checkout.', 'error');
+                    return;
+                }
+                window.location.href = out.init_point;
+            } catch (e) {
+                showToast('Falha de conexão ao gerar o checkout.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Assinar e começar';
+            }
         }
 
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
@@ -379,6 +634,10 @@
             document.getElementById("dash-fixed").innerText   = moneyBR(totalFixed);
             document.getElementById("dash-invest").innerText  = moneyBR(totalInvest);
             document.getElementById("dash-free-spent").innerText = moneyBR(totalFree);
+
+            // Sobra mensal alimenta o cálculo de viabilidade dos desejos.
+            monthlySurplus = freeBalance;
+            if (cachedWishes.length) renderWishes();
         }
 
         // ===================== CARTÕES / CONTAS =====================
@@ -407,6 +666,335 @@
             document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum cartão cadastrado.</p>`;
         }
 
+        // ===================== DESEJOS =====================
+        let cachedWishes = [];
+        let cachedContribs = {}; // wish_id -> total contribuído
+
+        async function fetchWishes() {
+            const searchId = myGroupId || activeUser?.id;
+            let wishes = [];
+            try {
+                const { data } = await supabase
+                    .from('wishes')
+                    .select('*')
+                    .or(`owner_id.eq.${activeUser.id},group_id.eq.${searchId}`)
+                    .order('created_at', { ascending: false });
+                wishes = data || [];
+            } catch (_) { wishes = []; }
+
+            cachedWishes = wishes;
+            cachedContribs = {};
+            const ids = wishes.map(w => w.id);
+            if (ids.length) {
+                try {
+                    const { data: contribs } = await supabase
+                        .from('wish_contributions').select('*').in('wish_id', ids);
+                    (contribs || []).forEach(c => {
+                        cachedContribs[c.wish_id] = (cachedContribs[c.wish_id] || 0) + Number(c.amount);
+                    });
+                } catch (_) { /* segue sem aportes */ }
+            }
+            renderWishes();
+        }
+
+        function renderWishes() {
+            const box = document.getElementById('wishes-list');
+            if (!cachedWishes.length) {
+                box.innerHTML = `<p class="text-slate-400 text-center py-4 text-[10px] font-medium">Nenhum desejo cadastrado ainda.</p>`;
+                return;
+            }
+            let html = "";
+            cachedWishes.forEach(w => {
+                const amount = Number(w.amount) || 0;
+                const contributed = cachedContribs[w.id] || 0;
+                const remaining = Math.max(amount - contributed, 0);
+                const achieved = w.status === 'achieved' || remaining <= 0;
+                const isOwner = w.owner_id === activeUser.id;
+                const pct = amount > 0 ? Math.min(100, Math.round((contributed / amount) * 100)) : 0;
+
+                // Viabilidade com base na sobra mensal consolidada.
+                let viab = "";
+                if (achieved) {
+                    viab = `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i> Conquistado!</span>`;
+                } else if (monthlySurplus <= 0) {
+                    viab = `<span class="text-rose-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Sua sobra mensal está negativa — ajuste os gastos antes.</span>`;
+                } else if (remaining <= monthlySurplus) {
+                    viab = `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-thumbs-up"></i> Cabe na sobra deste mês (${moneyBR(monthlySurplus)}).</span>`;
+                } else {
+                    const months = Math.ceil(remaining / monthlySurplus);
+                    viab = `<span class="text-amber-600 font-bold"><i class="fa-solid fa-hourglass-half"></i> ≈ ${months} ${months === 1 ? 'mês' : 'meses'} juntando sua sobra (${moneyBR(monthlySurplus)}/mês).</span>`;
+                }
+
+                const scopeBadge = w.scope === 'shared'
+                    ? `<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">Compartilhado</span>`
+                    : `<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">Pessoal</span>`;
+
+                let actions = "";
+                if (!achieved) {
+                    actions += `<button data-wish-contribute="${w.id}" class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded-lg"><i class="fa-solid fa-hand-holding-dollar"></i> Contribuir</button>`;
+                    if (w.scope === 'personal' && !isOwner) {
+                        actions += `<button data-wish-share="${w.id}" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg"><i class="fa-solid fa-heart"></i> Tornar nosso</button>`;
+                    }
+                    if (isOwner) {
+                        actions += `<button data-wish-achieve="${w.id}" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg"><i class="fa-solid fa-check"></i> Conquistei</button>`;
+                    }
+                }
+                if (isOwner) {
+                    actions += `<button data-wish-delete="${w.id}" class="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg"><i class="fa-solid fa-trash"></i></button>`;
+                }
+
+                html += `
+                    <div class="border border-slate-100 rounded-2xl p-3 ${achieved ? 'bg-emerald-50/40' : 'bg-white'} space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <span class="font-bold text-slate-700 text-xs block truncate">${w.title}</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">${scopeBadge}<span class="text-[9px] text-slate-400">Meta ${moneyBR(amount)}</span></div>
+                            </div>
+                            <span class="font-black text-purple-800 text-sm shrink-0">${moneyBR(remaining)}<span class="block text-[8px] text-slate-400 font-medium text-right">faltam</span></span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-500 to-indigo-500" style="width:${pct}%"></div></div>
+                        <p class="text-[10px] leading-snug">${viab}</p>
+                        ${contributed > 0 ? `<p class="text-[9px] text-slate-400">Já juntado: ${moneyBR(contributed)} (${pct}%)</p>` : ""}
+                        <div class="flex flex-wrap gap-1.5 pt-0.5">${actions}</div>
+                    </div>`;
+            });
+            box.innerHTML = html;
+        }
+
+        async function contributeWish(wishId) {
+            const raw = prompt("Quanto você quer contribuir para este desejo? (R$)");
+            if (raw === null) return;
+            const amount = parseFloat(String(raw).replace(',', '.'));
+            if (!(amount > 0)) { showToast("Valor inválido.", "error"); return; }
+            const { error } = await supabase.from('wish_contributions')
+                .insert([{ wish_id: wishId, user_id: activeUser.id, amount }]);
+            if (error) { showToast("Erro ao contribuir: " + error.message, "error"); return; }
+            showToast("Contribuição registrada! 💜");
+            fetchWishes();
+        }
+
+        async function shareWish(wishId) {
+            const { error } = await supabase.from('wishes').update({ scope: 'shared' }).eq('id', wishId);
+            if (error) { showToast("Erro: " + error.message, "error"); return; }
+            showToast("Desejo agora é de vocês! 🏳️‍🌈");
+            fetchWishes();
+        }
+
+        async function achieveWish(wishId) {
+            const { error } = await supabase.from('wishes').update({ status: 'achieved' }).eq('id', wishId);
+            if (error) { showToast("Erro: " + error.message, "error"); return; }
+            showToast("Parabéns pela conquista! 🎉");
+            fetchWishes();
+        }
+
+        async function deleteWish(wishId) {
+            if (!confirm("Remover este desejo?")) return;
+            const { error } = await supabase.from('wishes').delete().eq('id', wishId);
+            if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
+            showToast("Desejo removido.");
+            fetchWishes();
+        }
+
+        // ===================== MENTORIA (CLIENTE) =====================
+        async function fetchMentorshipClient() {
+            const searchId = myGroupId || activeUser?.id;
+            const nowIso = new Date().toISOString();
+
+            // Próximo agendamento do grupo
+            let myBookings = [];
+            try {
+                const { data } = await supabase.from('mentorship_bookings')
+                    .select('*')
+                    .or(`user_id.eq.${activeUser.id},group_id.eq.${searchId}`)
+                    .eq('status', 'booked')
+                    .order('scheduled_at', { ascending: true });
+                myBookings = data || [];
+            } catch (_) { myBookings = []; }
+
+            const upcoming = myBookings.filter(b => b.scheduled_at >= nowIso);
+            const nextBox = document.getElementById('mentorship-next');
+            if (upcoming.length) {
+                const d = new Date(upcoming[0].scheduled_at);
+                nextBox.classList.remove('hidden');
+                nextBox.innerHTML = `<i class="fa-solid fa-calendar-check"></i> Sua próxima mentoria: ${d.toLocaleString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                nextBox.classList.add('hidden');
+            }
+
+            // Bloqueio de 1 por mês-calendário
+            const monthKey = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth()}`; };
+            const thisMonth = `${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const bookedThisMonth = myBookings.some(b => monthKey(b.scheduled_at) === thisMonth);
+
+            // Horários disponíveis
+            let slots = [];
+            try {
+                const { data } = await supabase.from('mentorship_slots')
+                    .select('*')
+                    .eq('is_booked', false)
+                    .gte('starts_at', nowIso)
+                    .order('starts_at', { ascending: true });
+                slots = data || [];
+            } catch (_) { slots = []; }
+
+            const box = document.getElementById('mentorship-slots');
+            if (bookedThisMonth) {
+                box.innerHTML = `<p class="text-[11px] text-center text-slate-500 font-medium py-3 bg-slate-50 rounded-2xl border border-slate-100">Você já tem uma mentoria agendada neste mês. 😊</p>`;
+                return;
+            }
+            if (!slots.length) {
+                box.innerHTML = `<p class="text-[11px] text-center text-slate-400 font-medium py-3">Nenhum horário disponível no momento. Volte em breve!</p>`;
+                return;
+            }
+            box.innerHTML = slots.map(s => {
+                const d = new Date(s.starts_at);
+                return `<div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                    <span class="text-[11px] font-bold text-slate-700"><i class="fa-solid fa-clock text-purple-500 mr-1.5"></i>${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <button data-book-slot="${s.id}" data-book-at="${s.starts_at}" class="bg-purple-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-95">Agendar</button>
+                </div>`;
+            }).join('');
+        }
+
+        async function bookSlot(slotId, startsAt) {
+            const searchId = myGroupId || activeUser?.id;
+            const { error } = await supabase.from('mentorship_bookings').insert([{
+                slot_id: slotId, user_id: activeUser.id, group_id: searchId, scheduled_at: startsAt
+            }]);
+            if (error) { showToast("Não foi possível agendar: " + error.message, "error"); return; }
+            showToast("Mentoria agendada! ✅");
+            fetchMentorshipClient();
+        }
+
+        // ===================== ADMIN =====================
+        function switchAdminTab(panelId, btnId) {
+            document.querySelectorAll('.adm-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(panelId).classList.remove('hidden');
+            document.querySelectorAll('[id^="adm-nav-"]').forEach(b => b.className = "py-2 rounded-xl");
+            document.getElementById(btnId).className = "py-2 bg-slate-800 text-white rounded-xl shadow-sm";
+        }
+
+        async function openAdmin() {
+            showScreen('screen-admin');
+            switchAdminTab('adm-panel-clients', 'adm-nav-clients');
+            fetchAdminClients();
+            fetchAdminPrices();
+            fetchAdminSlots();
+        }
+
+        async function fetchAdminClients() {
+            let profiles = [], subs = [];
+            try {
+                const { data: p } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                profiles = p || [];
+            } catch (_) { profiles = []; }
+            try {
+                const { data: s } = await supabase.from('subscriptions').select('*');
+                subs = s || [];
+            } catch (_) { subs = []; }
+
+            const subByUser = {};
+            subs.forEach(s => {
+                const cur = subByUser[s.user_id];
+                if (!cur || s.status === 'active' || new Date(s.created_at) > new Date(cur.created_at)) subByUser[s.user_id] = s;
+            });
+
+            document.getElementById('adm-clients-count').innerText = profiles.length;
+            const ACC = { individual: 'Individual', couple: 'Casal', throuple: 'Trisal' };
+            const STT = { active: 'bg-emerald-100 text-emerald-700', pending: 'bg-amber-100 text-amber-700', paused: 'bg-slate-200 text-slate-600', cancelled: 'bg-rose-100 text-rose-700' };
+
+            document.getElementById('adm-clients-list').innerHTML = profiles.map(p => {
+                const s = subByUser[p.id];
+                const statusLabel = s ? s.status : 'sem plano';
+                const statusCls = s ? (STT[s.status] || 'bg-slate-100 text-slate-500') : 'bg-slate-100 text-slate-500';
+                const acc = s ? ACC[s.account_type] : '—';
+                const ment = s ? (s.with_mentorship ? 'com mentoria' : 'sem mentoria') : '—';
+                return `<div class="border border-slate-100 rounded-2xl p-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <span class="font-bold text-slate-700 block truncate">${p.full_name || '(sem nome)'} ${p.role === 'admin' ? '<span class="text-[8px] bg-slate-800 text-amber-300 px-1 rounded">ADMIN</span>' : ''}</span>
+                            <span class="text-[10px] text-slate-400 truncate block">${p.email || ''}</span>
+                        </div>
+                        <span class="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${statusCls} shrink-0">${statusLabel}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 flex gap-2"><span><i class="fa-solid fa-id-card"></i> ${acc}</span><span><i class="fa-solid fa-user-graduate"></i> ${ment}</span></div>
+                </div>`;
+            }).join('') || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum cliente.</p>`;
+        }
+
+        async function fetchAdminPrices() {
+            const { data } = await supabase.from('plan_prices').select('*');
+            const rows = (data || []).sort((a, b) =>
+                (a.account_type + a.with_mentorship).localeCompare(b.account_type + b.with_mentorship));
+            const ACC = { individual: 'Individual', couple: 'Casal', throuple: 'Trisal' };
+            document.getElementById('adm-prices-list').innerHTML = rows.map(p => `
+                <div class="flex items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                    <span class="text-[11px] font-bold text-slate-700 min-w-0 truncate">${ACC[p.account_type]} · ${p.with_mentorship ? 'com mentoria' : 'sem mentoria'}</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="text-[10px] text-slate-400">R$</span>
+                        <input type="number" step="0.01" min="0" value="${Number(p.amount)}" data-price-acc="${p.account_type}" data-price-ment="${p.with_mentorship}" class="adm-price-input w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-right font-bold bg-white outline-none focus:border-purple-400">
+                    </div>
+                </div>`).join('');
+        }
+
+        async function saveAdminPrices() {
+            const inputs = document.querySelectorAll('.adm-price-input');
+            let ok = 0;
+            for (const inp of inputs) {
+                const amount = parseFloat(inp.value);
+                if (!(amount >= 0)) continue;
+                const { error } = await supabase.from('plan_prices')
+                    .update({ amount, updated_at: new Date().toISOString() })
+                    .eq('account_type', inp.dataset.priceAcc)
+                    .eq('with_mentorship', inp.dataset.priceMent === 'true');
+                if (!error) ok++;
+            }
+            await loadPlanPrices();
+            showToast(`${ok} preço(s) atualizado(s).`);
+        }
+
+        async function fetchAdminSlots() {
+            const nowIso = new Date().toISOString();
+            let slots = [], bookings = [];
+            try {
+                const { data } = await supabase.from('mentorship_slots').select('*').order('starts_at', { ascending: true });
+                slots = data || [];
+            } catch (_) { slots = []; }
+            try {
+                const { data } = await supabase.from('mentorship_bookings').select('*').eq('status', 'booked');
+                bookings = data || [];
+            } catch (_) { bookings = []; }
+            const bookedSlot = {};
+            bookings.forEach(b => bookedSlot[b.slot_id] = b);
+
+            document.getElementById('adm-slots-list').innerHTML = slots.map(s => {
+                const d = new Date(s.starts_at);
+                const past = s.starts_at < nowIso;
+                const taken = s.is_booked || bookedSlot[s.id];
+                return `<div class="flex items-center justify-between gap-2 p-2.5 rounded-2xl border ${taken ? 'bg-emerald-50 border-emerald-100' : past ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100'}">
+                    <span class="text-[11px] font-bold text-slate-700">${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-[9px] font-bold uppercase ${taken ? 'text-emerald-600' : 'text-slate-400'}">${taken ? 'Agendado' : (past ? 'Expirado' : 'Livre')}</span>
+                        ${!taken ? `<button data-del-slot="${s.id}" class="text-rose-500 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                </div>`;
+            }).join('') || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum horário criado.</p>`;
+        }
+
+        async function createAdminSlot(startsAt) {
+            const { error } = await supabase.from('mentorship_slots')
+                .insert([{ admin_id: activeUser.id, starts_at: new Date(startsAt).toISOString() }]);
+            if (error) { showToast("Erro ao criar horário: " + error.message, "error"); return; }
+            showToast("Horário aberto!");
+            fetchAdminSlots();
+        }
+
+        async function deleteAdminSlot(slotId) {
+            const { error } = await supabase.from('mentorship_slots').delete().eq('id', slotId);
+            if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
+            showToast("Horário removido.");
+            fetchAdminSlots();
+        }
+
         // ===================== INICIALIZAÇÃO (window.onload) =====================
         window.onload = function () {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -415,7 +1003,86 @@
             // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
             document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
+            document.getElementById('nav-btn-wishes').addEventListener('click', () => { switchTab('panel-wishes', 'nav-btn-wishes'); fetchWishes(); });
+            document.getElementById('nav-btn-mentorship').addEventListener('click', () => { switchTab('panel-mentorship', 'nav-btn-mentorship'); fetchMentorshipClient(); });
             document.getElementById('nav-btn-partner').addEventListener('click', () => switchTab('panel-partner', 'nav-btn-partner'));
+
+            // ---- Tela de planos ----
+            document.querySelectorAll('.plan-type-btn').forEach(btn => {
+                btn.addEventListener('click', () => { selectedAccount = btn.dataset.account; renderPlanScreen(); });
+            });
+            document.getElementById('plan-mentorship').addEventListener('change', renderPlanScreen);
+            document.getElementById('btn-subscribe').addEventListener('click', subscribeNow);
+            document.getElementById('btn-plans-refresh').addEventListener('click', () => { showToast('Atualizando acesso...'); checkAuth(); });
+            document.getElementById('btn-plans-join').addEventListener('click', async () => {
+                const token = document.getElementById('plans-invite-token').value.trim();
+                if (!token) { showToast("Cole o código do convite.", "error"); return; }
+                if (token === activeUser?.id) { showToast("Você não pode usar o seu próprio código.", "error"); return; }
+                const { data: result, error } = await supabase.rpc('join_partner', { partner: token });
+                if (error) { showToast("Erro: " + error.message, "error"); return; }
+                if (result === 'self')    { showToast("Você não pode usar o seu próprio código.", "error"); return; }
+                if (result === 'no_plan') { showToast("O dono do código ainda não tem um plano ativo.", "error"); return; }
+                if (result === 'full')    { showToast("Este grupo já atingiu o limite de pessoas do plano.", "error"); return; }
+                myGroupId = token;
+                showToast("Convite aceito! Bem-vindo(a) ao grupo. 🏳️‍🌈");
+                await fetchSubscription();
+                if (mySubscription && mySubscription.status === 'active') enterApp();
+                else showToast("Acesso ainda não liberado — confira com seu par.", "error");
+            });
+            document.getElementById('btn-plans-logout').addEventListener('click', async () => {
+                await supabase.auth.signOut(); activeUser = null; mySubscription = null; showScreen('screen-auth');
+            });
+
+            // ---- Painel admin ----
+            document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
+            document.getElementById('btn-admin-back').addEventListener('click', () => showScreen('screen-app'));
+            document.getElementById('adm-nav-clients').addEventListener('click', () => { switchAdminTab('adm-panel-clients', 'adm-nav-clients'); fetchAdminClients(); });
+            document.getElementById('adm-nav-prices').addEventListener('click', () => { switchAdminTab('adm-panel-prices', 'adm-nav-prices'); fetchAdminPrices(); });
+            document.getElementById('adm-nav-mentorship').addEventListener('click', () => { switchAdminTab('adm-panel-mentorship', 'adm-nav-mentorship'); fetchAdminSlots(); });
+            document.getElementById('btn-save-prices').addEventListener('click', saveAdminPrices);
+            document.getElementById('form-slot').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const dt = document.getElementById('slot-datetime').value;
+                if (!dt) return;
+                createAdminSlot(dt);
+                document.getElementById('form-slot').reset();
+            });
+            document.getElementById('adm-slots-list').addEventListener('click', (e) => {
+                const del = e.target.closest('[data-del-slot]');
+                if (del) deleteAdminSlot(del.dataset.delSlot);
+            });
+
+            // ---- Desejos ----
+            document.getElementById('form-wish').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = document.getElementById('wish-title').value.trim();
+                const amount = parseFloat(document.getElementById('wish-amount').value);
+                const scope = document.getElementById('wish-scope').value;
+                if (!title || !(amount > 0)) { showToast("Preencha o desejo e um valor válido.", "error"); return; }
+                const { error } = await supabase.from('wishes').insert([{
+                    owner_id: activeUser.id, group_id: myGroupId, title, amount, scope
+                }]);
+                if (error) { showToast("Erro ao salvar desejo: " + error.message, "error"); return; }
+                showToast("Desejo adicionado! ⭐");
+                document.getElementById('form-wish').reset();
+                fetchWishes();
+            });
+            document.getElementById('wishes-list').addEventListener('click', (e) => {
+                const c = e.target.closest('[data-wish-contribute]');
+                const s = e.target.closest('[data-wish-share]');
+                const a = e.target.closest('[data-wish-achieve]');
+                const d = e.target.closest('[data-wish-delete]');
+                if (c) contributeWish(c.dataset.wishContribute);
+                else if (s) shareWish(s.dataset.wishShare);
+                else if (a) achieveWish(a.dataset.wishAchieve);
+                else if (d) deleteWish(d.dataset.wishDelete);
+            });
+
+            // ---- Mentoria (agendar) ----
+            document.getElementById('mentorship-slots').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-book-slot]');
+                if (b) bookSlot(b.dataset.bookSlot, b.dataset.bookAt);
+            });
 
             // ---- Máscara de WhatsApp ----
             document.getElementById('register-whatsapp').addEventListener('input', (e) => {
@@ -469,7 +1136,7 @@
             // ---- Logout ----
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
-                activeUser = null; myGroupId = null;
+                activeUser = null; myGroupId = null; mySubscription = null; myProfile = null; isAdmin = false;
                 showScreen("screen-auth");
                 showToast("Sessão encerrada.");
             });
@@ -541,12 +1208,16 @@
                 if (!partnerId) return;
                 if (partnerId === activeUser?.id) { showToast("Você não pode usar o seu próprio código.", "error"); return; }
 
-                const { error } = await supabase.from('profiles').update({ group_id: partnerId }).eq('id', activeUser?.id);
+                const { data: result, error } = await supabase.rpc('join_partner', { partner: partnerId });
                 if (error) { showToast("Erro ao fundir contas: " + error.message, "error"); return; }
+                if (result === 'self')    { showToast("Você não pode usar o seu próprio código.", "error"); return; }
+                if (result === 'no_plan') { showToast("O dono do código ainda não tem um plano ativo.", "error"); return; }
+                if (result === 'full')    { showToast("Este grupo já atingiu o limite de pessoas do plano.", "error"); return; }
 
                 myGroupId = partnerId;
                 showToast("Contas integradas! Sincronizando saldos...");
                 document.getElementById('form-connect-partner').reset();
+                await fetchSubscription();
                 loadAppData();
             });
         };

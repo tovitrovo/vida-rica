@@ -146,9 +146,343 @@ create policy "transactions_delete_own" on public.transactions
     for delete using (auth.uid() = user_id);
 
 -- ============================================================================
+-- 4.1. FUNÇÃO AUXILIAR: public.is_admin()
+--      Retorna true se o e-mail do JWT do chamador for de um administrador.
+--      Lê o e-mail direto do token (não da tabela profiles) para evitar
+--      recursão de RLS nas políticas de administrador.
+-- ============================================================================
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+    select coalesce(
+        lower(auth.jwt() ->> 'email') in ('victortrovo@me.com', 'contato@77estudio.com'),
+        false
+    );
+$$;
+
+-- Administradores podem ler todos os perfis (lista de clientes do painel admin).
+drop policy if exists "profiles_select_admin" on public.profiles;
+create policy "profiles_select_admin" on public.profiles
+    for select using (public.is_admin());
+
+-- ============================================================================
+-- 6. TABELA: public.plan_prices
+--    Matriz de preços (configurável pelo admin). 6 combinações de plano.
+-- ============================================================================
+create table if not exists public.plan_prices (
+    account_type    text    not null check (account_type in ('individual', 'couple', 'throuple')),
+    with_mentorship boolean not null default false,
+    amount          numeric(14, 2) not null default 0,
+    updated_at      timestamptz not null default now(),
+    primary key (account_type, with_mentorship)
+);
+
+-- Seed idempotente dos 6 planos (valores default — ajustáveis no painel admin).
+insert into public.plan_prices (account_type, with_mentorship, amount) values
+    ('individual', false,  29.90),
+    ('individual', true,  149.90),
+    ('couple',     false,  49.90),
+    ('couple',     true,  199.90),
+    ('throuple',   false,  69.90),
+    ('throuple',   true,  249.90)
+on conflict (account_type, with_mentorship) do nothing;
+
+-- ============================================================================
+-- 7. TABELA: public.subscriptions
+--    Assinatura recorrente (Mercado Pago preapproval) que libera o acesso.
+-- ============================================================================
+create table if not exists public.subscriptions (
+    id                 uuid primary key default gen_random_uuid(),
+    user_id            uuid not null references auth.users (id) on delete cascade,
+    group_id           uuid,
+    account_type       text not null default 'individual'
+                       check (account_type in ('individual', 'couple', 'throuple')),
+    with_mentorship    boolean not null default false,
+    status             text not null default 'pending'
+                       check (status in ('pending', 'active', 'paused', 'cancelled')),
+    amount             numeric(14, 2) not null default 0,
+    mp_preapproval_id  text,
+    current_period_end timestamptz,
+    created_at         timestamptz not null default now(),
+    updated_at         timestamptz not null default now()
+);
+
+-- ============================================================================
+-- 8. TABELA: public.mentorship_slots
+--    Horários de disponibilidade criados pelos administradores.
+-- ============================================================================
+create table if not exists public.mentorship_slots (
+    id           uuid primary key default gen_random_uuid(),
+    admin_id     uuid not null references auth.users (id) on delete cascade,
+    starts_at    timestamptz not null,
+    duration_min int not null default 60,
+    is_booked    boolean not null default false,
+    created_at   timestamptz not null default now()
+);
+
+-- ============================================================================
+-- 9. TABELA: public.mentorship_bookings
+--    Agendamentos de mentoria (1 por mês-calendário; só plano com mentoria).
+-- ============================================================================
+create table if not exists public.mentorship_bookings (
+    id           uuid primary key default gen_random_uuid(),
+    slot_id      uuid not null references public.mentorship_slots (id) on delete cascade,
+    user_id      uuid not null references auth.users (id) on delete cascade,
+    group_id     uuid,
+    scheduled_at timestamptz not null,
+    status       text not null default 'booked'
+                 check (status in ('booked', 'done', 'cancelled')),
+    created_at   timestamptz not null default now()
+);
+
+-- ============================================================================
+-- 10. TABELA: public.wishes
+--     Desejos pessoais ou compartilhados do grupo.
+-- ============================================================================
+create table if not exists public.wishes (
+    id          uuid primary key default gen_random_uuid(),
+    owner_id    uuid not null references auth.users (id) on delete cascade,
+    group_id    uuid,
+    title       text not null,
+    amount      numeric(14, 2) not null default 0,
+    scope       text not null default 'personal' check (scope in ('personal', 'shared')),
+    status      text not null default 'open' check (status in ('open', 'achieved', 'cancelled')),
+    target_date date,
+    created_at  timestamptz not null default now()
+);
+
+-- ============================================================================
+-- 11. TABELA: public.wish_contributions
+--     Aportes feitos a um desejo (inclusive do parceiro num desejo pessoal).
+-- ============================================================================
+create table if not exists public.wish_contributions (
+    id         uuid primary key default gen_random_uuid(),
+    wish_id    uuid not null references public.wishes (id) on delete cascade,
+    user_id    uuid not null references auth.users (id) on delete cascade,
+    amount     numeric(14, 2) not null default 0,
+    created_at timestamptz not null default now()
+);
+
+-- Índices de apoio
+create index if not exists idx_subscriptions_user_id       on public.subscriptions (user_id);
+create index if not exists idx_subscriptions_group_id      on public.subscriptions (group_id);
+create index if not exists idx_mentorship_bookings_user_id on public.mentorship_bookings (user_id);
+create index if not exists idx_wishes_group_id             on public.wishes (group_id);
+create index if not exists idx_wishes_owner_id             on public.wishes (owner_id);
+create index if not exists idx_wish_contributions_wish_id  on public.wish_contributions (wish_id);
+
+-- ============================================================================
+-- 12. ROW LEVEL SECURITY DAS NOVAS TABELAS
+-- ============================================================================
+alter table public.plan_prices         enable row level security;
+alter table public.subscriptions       enable row level security;
+alter table public.mentorship_slots    enable row level security;
+alter table public.mentorship_bookings enable row level security;
+alter table public.wishes              enable row level security;
+alter table public.wish_contributions  enable row level security;
+
+-- Helper de pertencimento ao grupo (próprio id OU group_id do meu perfil).
+-- Usado nas políticas abaixo via subselect direto para manter tudo explícito.
+
+-- ---------- POLÍTICAS: plan_prices ----------
+-- Qualquer autenticado lê os preços (tela de planos). Só admin altera.
+drop policy if exists "plan_prices_select_all" on public.plan_prices;
+create policy "plan_prices_select_all" on public.plan_prices
+    for select using (auth.role() = 'authenticated');
+
+drop policy if exists "plan_prices_update_admin" on public.plan_prices;
+create policy "plan_prices_update_admin" on public.plan_prices
+    for update using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "plan_prices_insert_admin" on public.plan_prices;
+create policy "plan_prices_insert_admin" on public.plan_prices
+    for insert with check (public.is_admin());
+
+-- ---------- POLÍTICAS: subscriptions ----------
+-- Leitura: a minha assinatura, a do meu grupo, ou todas (se admin).
+drop policy if exists "subscriptions_select_group" on public.subscriptions;
+create policy "subscriptions_select_group" on public.subscriptions
+    for select using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or public.is_admin()
+    );
+
+-- Inserção: só posso criar assinatura em meu próprio nome (contingência;
+-- o fluxo normal cria via Edge Function com service role).
+drop policy if exists "subscriptions_insert_own" on public.subscriptions;
+create policy "subscriptions_insert_own" on public.subscriptions
+    for insert with check (auth.uid() = user_id);
+
+-- ---------- POLÍTICAS: mentorship_slots ----------
+-- Leitura: qualquer autenticado vê os horários disponíveis. Admin gerencia.
+drop policy if exists "mentorship_slots_select_all" on public.mentorship_slots;
+create policy "mentorship_slots_select_all" on public.mentorship_slots
+    for select using (auth.role() = 'authenticated');
+
+drop policy if exists "mentorship_slots_admin_all" on public.mentorship_slots;
+create policy "mentorship_slots_admin_all" on public.mentorship_slots
+    for all using (public.is_admin()) with check (public.is_admin());
+
+-- ---------- POLÍTICAS: mentorship_bookings ----------
+drop policy if exists "mentorship_bookings_select_group" on public.mentorship_bookings;
+create policy "mentorship_bookings_select_group" on public.mentorship_bookings
+    for select using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or public.is_admin()
+    );
+
+drop policy if exists "mentorship_bookings_insert_own" on public.mentorship_bookings;
+create policy "mentorship_bookings_insert_own" on public.mentorship_bookings
+    for insert with check (auth.uid() = user_id);
+
+drop policy if exists "mentorship_bookings_update_own" on public.mentorship_bookings;
+create policy "mentorship_bookings_update_own" on public.mentorship_bookings
+    for update using (auth.uid() = user_id or public.is_admin())
+    with check (auth.uid() = user_id or public.is_admin());
+
+-- ---------- POLÍTICAS: wishes ----------
+drop policy if exists "wishes_select_group" on public.wishes;
+create policy "wishes_select_group" on public.wishes
+    for select using (
+        auth.uid() = owner_id
+        or group_id = auth.uid()
+        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+    );
+
+drop policy if exists "wishes_insert_own" on public.wishes;
+create policy "wishes_insert_own" on public.wishes
+    for insert with check (auth.uid() = owner_id);
+
+-- Atualização: dono OU parceiro do mesmo grupo (para aceitar como compartilhado).
+drop policy if exists "wishes_update_group" on public.wishes;
+create policy "wishes_update_group" on public.wishes
+    for update using (
+        auth.uid() = owner_id
+        or group_id = auth.uid()
+        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+    );
+
+drop policy if exists "wishes_delete_own" on public.wishes;
+create policy "wishes_delete_own" on public.wishes
+    for delete using (auth.uid() = owner_id);
+
+-- ---------- POLÍTICAS: wish_contributions ----------
+-- Leitura: aportes de desejos visíveis ao meu grupo.
+drop policy if exists "wish_contributions_select_group" on public.wish_contributions;
+create policy "wish_contributions_select_group" on public.wish_contributions
+    for select using (
+        wish_id in (
+            select w.id from public.wishes w
+            where w.owner_id = auth.uid()
+               or w.group_id = auth.uid()
+               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        )
+    );
+
+-- Inserção: aporto em meu próprio nome (em qualquer desejo do meu grupo).
+drop policy if exists "wish_contributions_insert_own" on public.wish_contributions;
+create policy "wish_contributions_insert_own" on public.wish_contributions
+    for insert with check (
+        auth.uid() = user_id
+        and wish_id in (
+            select w.id from public.wishes w
+            where w.owner_id = auth.uid()
+               or w.group_id = auth.uid()
+               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        )
+    );
+
+-- ============================================================================
+-- 13. GATILHO DE AGENDAMENTO DE MENTORIA
+--     Ao inserir um booking: valida disponibilidade do horário, impõe o limite
+--     de 1 mentoria por mês-calendário no grupo e marca o slot como reservado.
+--     Roda como SECURITY DEFINER para poder atualizar mentorship_slots
+--     (cuja escrita é restrita ao admin pela RLS).
+-- ============================================================================
+create or replace function public.handle_new_booking()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    slot_taken boolean;
+    same_month int;
+begin
+    select is_booked into slot_taken from public.mentorship_slots where id = new.slot_id for update;
+    if slot_taken is null then raise exception 'Horário inexistente.'; end if;
+    if slot_taken then raise exception 'Este horário já foi reservado.'; end if;
+
+    select count(*) into same_month
+        from public.mentorship_bookings b
+        where b.status = 'booked'
+          and (b.user_id = new.user_id or b.group_id = new.group_id)
+          and date_trunc('month', b.scheduled_at) = date_trunc('month', new.scheduled_at);
+    if same_month > 0 then raise exception 'Você já tem uma mentoria agendada neste mês.'; end if;
+
+    update public.mentorship_slots set is_booked = true where id = new.slot_id;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_booking_created on public.mentorship_bookings;
+create trigger on_booking_created
+    before insert on public.mentorship_bookings
+    for each row execute function public.handle_new_booking();
+
+-- ============================================================================
+-- 14. FUNÇÃO: public.join_partner(partner uuid)
+--     Vincula o usuário autenticado ao grupo do parceiro, respeitando o limite
+--     do plano (casal = 2 pessoas, trisal = 3). SECURITY DEFINER para enxergar
+--     os membros e a assinatura do dono mesmo com a RLS ativa.
+--     Retorna 'ok' | 'self' | 'full' | 'no_plan'.
+-- ============================================================================
+create or replace function public.join_partner(partner uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    owner_account text;
+    limit_n int;
+    current_n int;
+begin
+    if partner = auth.uid() then return 'self'; end if;
+
+    select account_type into owner_account
+        from public.subscriptions
+        where user_id = partner
+        order by (status = 'active') desc, created_at desc
+        limit 1;
+
+    if owner_account is null then return 'no_plan'; end if;
+
+    limit_n := case owner_account when 'throuple' then 3 when 'couple' then 2 else 1 end;
+
+    select count(*) into current_n
+        from public.profiles
+        where group_id = partner or id = partner;
+
+    if current_n >= limit_n then return 'full'; end if;
+
+    update public.profiles set group_id = partner where id = auth.uid();
+    return 'ok';
+end;
+$$;
+
+-- ============================================================================
 -- 5. GATILHO DE CRIAÇÃO DE PERFIL
 --    Insere automaticamente o usuário em public.profiles após o cadastro.
---    O papel 'admin' é atribuído somente ao e-mail victortrovo@me.com.
+--    O papel 'admin' é atribuído aos e-mails victortrovo@me.com e contato@77estudio.com.
 -- ============================================================================
 create or replace function public.handle_new_user()
 returns trigger
@@ -164,7 +498,7 @@ begin
         coalesce(new.raw_user_meta_data ->> 'full_name', ''),
         coalesce(new.raw_user_meta_data ->> 'whatsapp', ''),
         case
-            when lower(new.email) = 'victortrovo@me.com' then 'admin'
+            when lower(new.email) in ('victortrovo@me.com', 'contato@77estudio.com') then 'admin'
             else 'client'
         end
     )
