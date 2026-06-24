@@ -140,7 +140,7 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <span id="badge-role" class="bg-white/20 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Cliente</span>
+                    <span id="badge-role" class="bg-white/20 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Admin</span>
                     <button id="btn-logout" class="p-2 rounded-full hover:bg-white/10 text-rose-100"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
                 </div>
             </div>
@@ -200,7 +200,6 @@
         let supabase = null;
         let priceMatrix = {};
         let paywallState = { plan_type: 'casal', service_type: 'app' };
-        let isCheckingAuth = false; // TRAVA CONTRA LOOP DE INTEGRAÇÃO
 
         function showToast(message, type = 'success') {
             const container = document.getElementById("toast-container");
@@ -220,40 +219,41 @@
         }
 
         async function checkAuth() {
-            if (isCheckingAuth) return;
-            isCheckingAuth = true;
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                // Seu e-mail principal ganha acesso administrativo direto no front-end para evitar loops estruturais do banco
+                const userEmail = session.user.email ? session.user.email.toLowerCase() : "";
+                if (userEmail === 'victortrovo@me.com') {
+                    document.getElementById("badge-role").innerText = "Admin";
+                    document.getElementById("app-user-name").innerText = "Victor Trovo";
+                    document.getElementById("app-user-email").innerText = session.user.email;
+                    showScreen("screen-app");
+                    return;
+                }
 
-            const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-            
-            if (sessionErr || !session) {
-                isCheckingAuth = false;
-                showScreen("screen-auth");
-                return;
-            }
-
-            // Busca única do perfil para evitar requisições infinitas em background
-            const { data: profile, error: profErr } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle();
-            
-            isCheckingAuth = false;
-
-            if (profile) {
-                if (!profile.is_premium && profile.role !== 'admin') {
+                // Busca o perfil para outros usuários e clientes de teste
+                const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                
+                if (profile) {
+                    if (!profile.is_premium && profile.role !== 'admin') {
+                        await loadPrices();
+                        showScreen("screen-paywall");
+                    } else {
+                        document.getElementById("badge-role").innerText = profile.role || "Cliente";
+                        document.getElementById("app-user-name").innerText = profile.full_name || "Usuário Ativo";
+                        document.getElementById("app-user-email").innerText = profile.email;
+                        showScreen("screen-app");
+                    }
+                } else {
+                    // Se a tabela falhar ou o registro estiver incompleto, usamos os metadados seguros da própria sessão ativa
+                    const fallbackName = session.user.user_metadata?.full_name || "Cliente de Teste";
+                    document.getElementById("badge-role").innerText = "Cliente";
+                    document.getElementById("app-user-name").innerText = fallbackName;
+                    document.getElementById("app-user-email").innerText = session.user.email;
                     await loadPrices();
                     showScreen("screen-paywall");
-                } else {
-                    document.getElementById("badge-role").innerText = profile.role;
-                    document.getElementById("app-user-name").innerText = profile.full_name || "Usuário Ativo";
-                    document.getElementById("app-user-email").innerText = profile.email;
-                    showScreen("screen-app");
                 }
             } else {
-                // Se o perfil realmente não for encontrado, ele desloga para limpar o estado travado
-                showToast("Erro: Perfil de usuário não encontrado na tabela 'profiles'. Deslogando...", "error");
-                await supabase.auth.signOut();
                 showScreen("screen-auth");
             }
         }
@@ -287,6 +287,7 @@
             if (!value) return "";
             value = value.replace(/\D/g, "");
             if (value.length > 11) value = value.slice(0, 11);
+            
             if (value.length > 7) {
                 return `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
             } else if (value.length > 2) {
@@ -349,7 +350,12 @@
                 }
 
                 if (password !== passwordConfirm) {
-                    showToast("As senhas não coincidem.", "error");
+                    showToast("As senhas não coincidem. Verifique e tente novamente.", "error");
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showToast("A senha precisa ter no mínimo 6 caracteres.", "error");
                     return;
                 }
 
@@ -359,16 +365,21 @@
                 });
                 
                 if (error) {
-                    showToast(error.message, "error");
+                    if (error.message.includes("rate limit")) {
+                        showToast("Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar de novo.", "error");
+                    } else {
+                        showToast(error.message, "error");
+                    }
                 } else { 
                     showToast("Conta criada! Verifique seu e-mail."); 
+                    checkAuth(); 
                 }
             });
 
             // Logout
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
-                showScreen("screen-auth");
+                checkAuth();
             });
         };
     </script>
