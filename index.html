@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -15,169 +15,136 @@
         .screen { display: none !important; }
         .screen.active { display: block !important; animation: fadeIn 0.25s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .toast-anim { animation: toastIn 0.25s ease-out; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+        /* Faixa decorativa da bandeira em detalhes */
+        .pride-bar { background: linear-gradient(90deg,#e11d48,#f97316,#facc15,#10b981,#0ea5e9,#7c3aed); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-12">
 
-    <!-- PAYWALL INTERNO -->
-    <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
-            <div class="text-center space-y-1">
-                <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                    <i class="fa-solid fa-gem text-xl"></i>
-                </div>
-                <h2 class="font-extrabold text-xl text-slate-800 tracking-tight">Escolha seu Plano Vida Rica</h2>
-                <p class="text-xs text-slate-400 font-medium">Monte a experiência perfeita para sua realidade financeira.</p>
-            </div>
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Passo 1: Suporte com mentoria?</label>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" id="paywall-service-app" class="p-3 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-left transition-all">
-                        <div class="font-bold text-xs">Apenas o Aplicativo</div>
-                    </button>
-                    <button type="button" id="paywall-service-consultoria" class="p-3 border border-slate-200 bg-white text-slate-600 rounded-xl text-left transition-all hover:border-slate-300">
-                        <div class="font-bold text-xs">App + Consultoria</div>
-                    </button>
-                </div>
-            </div>
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Passo 2: Estrutura familiar?</label>
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button type="button" id="paywall-plan-individual" class="p-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
-                        <span class="font-bold text-[11px]">Individual</span>
-                    </button>
-                    <button type="button" id="paywall-plan-casal" class="p-2 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
-                        <span class="font-bold text-[11px]">Casal</span>
-                    </button>
-                    <button type="button" id="paywall-plan-trisal" class="p-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
-                        <span class="font-bold text-[11px]">Trisal</span>
-                    </button>
-                </div>
-            </div>
-            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
-                <div>
-                    <div id="paywall-summary-title" class="font-bold text-xs text-slate-800">Plano Casal (App)</div>
-                    <div id="paywall-summary-desc" class="text-[10px] text-slate-500 mt-0.5">Conecte mais 1 parceria.</div>
-                </div>
-                <div class="text-right">
-                    <div id="paywall-dynamic-price" class="text-lg font-black text-rose-500">R$ 49,90</div>
-                    <div class="text-[9px] text-slate-400 font-bold uppercase">Por mês</div>
-                </div>
-            </div>
-            <button id="btn-check-payment-status" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5">
-                <i class="fa-solid fa-arrows-rotate"></i>
-                <span>Liberar Acesso / Já paguei</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- LOGIN / CADASTRO -->
-    <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-12 flex flex-col justify-center min-h-screen space-y-6">
+    <!-- ===================== LOGIN / CADASTRO ===================== -->
+    <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-10 flex flex-col justify-center min-h-screen space-y-6">
         <div class="text-center space-y-2">
-            <div class="w-16 h-16 bg-gradient-to-tr from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+            <div class="w-16 h-16 bg-gradient-to-tr from-purple-700 to-indigo-800 text-white rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-purple-300/40">
                 <i class="fa-solid fa-gem text-2xl"></i>
             </div>
-            <h1 class="font-extrabold text-2xl text-slate-800 tracking-tight">Vida Rica</h1>
+            <h1 class="font-black text-2xl text-slate-800 tracking-tight">Vida Rica</h1>
             <p class="text-xs text-slate-400 font-medium">Plano de Gastos Conscientes</p>
+            <div class="pride-bar h-1 w-20 rounded-full mx-auto mt-1"></div>
         </div>
         <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100 space-y-4">
             <div class="flex border-b border-slate-100 pb-2">
-                <button id="auth-tab-login" class="flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900">Acessar Conta</button>
+                <button id="auth-tab-login" class="flex-1 text-center font-bold text-xs text-purple-700 pb-2 border-b-2 border-purple-700">Acessar Conta</button>
                 <button id="auth-tab-register" class="flex-1 text-center font-bold text-xs text-slate-400 pb-2">Nova Conta</button>
             </div>
+
+            <!-- FORM LOGIN -->
             <form id="form-login" class="space-y-3.5">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu E-mail</label>
-                    <input type="email" id="login-email" required placeholder="Ex: victor@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="email" id="login-email" required placeholder="nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sua Senha</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all">Entrar no Aplicativo</button>
+                <button type="submit" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 text-white font-bold py-3 rounded-xl text-xs shadow-md shadow-purple-300/40 transition-all active:scale-[0.98]">Entrar no Aplicativo</button>
             </form>
+
+            <!-- FORM CADASTRO -->
             <form id="form-register" class="space-y-3.5 hidden">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu Nome Completo</label>
-                    <input type="text" id="register-name" required placeholder="Ex: Victor" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="text" id="register-name" required placeholder="Ex: Victor Trovo" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">WhatsApp (Celular)</label>
-                    <input type="tel" id="register-whatsapp" required placeholder="(11) 99999-9999" maxlength="15" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 font-mono">
+                    <input type="tel" id="register-whatsapp" required placeholder="(11) 99999-9999" maxlength="15" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 font-mono focus:border-purple-400">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">E-mail</label>
-                    <input type="email" id="register-email" required placeholder="Ex: nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="email" id="register-email" required placeholder="nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Senha</label>
-                    <input type="password" id="register-password" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="password" id="register-password" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Confirme a Senha</label>
-                    <input type="password" id="register-password-confirm" required placeholder="Repita a senha anterior" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
+                    <input type="password" id="register-password-confirm" required placeholder="Repita a senha anterior" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 focus:border-purple-400">
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all mt-2">Criar Minha Conta</button>
+                <button type="submit" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 text-white font-bold py-3 rounded-xl text-xs shadow-md shadow-purple-300/40 transition-all active:scale-[0.98] mt-1">Criar Minha Conta</button>
             </form>
         </div>
+        <p class="text-center text-[10px] text-slate-400 font-medium">Feito com orgulho para indivíduos, casais e trisais. 🏳️‍🌈</p>
     </section>
 
-    <!-- ÁREA LOGADA PRINCIPAL -->
-    <div id="screen-app" class="screen space-y-4">
-        <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md sticky top-0 z-40">
+    <!-- ===================== ÁREA LOGADA ===================== -->
+    <div id="screen-app" class="screen">
+        <!-- HEADER ROXO (estrutural) -->
+        <header class="bg-gradient-to-r from-purple-700 to-indigo-800 text-white shadow-lg sticky top-0 z-40">
+            <div class="pride-bar h-1 w-full"></div>
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <div class="bg-amber-500 text-slate-950 p-2 rounded-xl"><i class="fa-solid fa-gem text-base"></i></div>
+                <div class="flex items-center space-x-2.5">
+                    <div class="bg-amber-400 text-purple-900 p-2 rounded-xl shadow"><i class="fa-solid fa-gem text-base"></i></div>
                     <div>
-                        <h1 class="font-black text-base tracking-tight leading-none">Vida Rica</h1>
-                        <span class="text-[10px] text-slate-400 font-medium">Gestão Consciente Unificada</span>
+                        <h1 class="font-black text-base tracking-tight leading-none" id="app-user-name">Vida Rica</h1>
+                        <span class="text-[10px] text-purple-200 font-medium">Gestão Consciente Unificada</span>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <span id="badge-role" class="bg-amber-500/20 text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border border-amber-500/30">Membro</span>
-                    <button id="btn-logout" class="p-2 rounded-xl hover:bg-white/10 text-slate-300"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
+                    <span id="badge-role" class="bg-white/15 text-amber-300 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border border-white/20">Membro</span>
+                    <button id="btn-logout" class="p-2 rounded-xl hover:bg-white/10 text-purple-100"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
                 </div>
             </div>
         </header>
 
-        <main class="max-w-md w-full mx-auto px-4 space-y-4">
-            
-            <!-- CONTROLE DE COFRE / METRICA PRINCIPAL -->
-            <div class="bg-gradient-to-b from-slate-900 to-slate-950 text-white p-5 rounded-3xl shadow-xl border border-slate-800">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Livre para Gastar (Mês Corrente)</p>
-                <h3 id="dash-free-balance" class="text-3xl font-black tracking-tight mt-1 text-amber-400">R$ 0,00</h3>
-                
-                <div class="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-white/5 text-center">
-                    <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Renda Unificada</span>
-                        <span id="dash-income" class="text-xs font-bold text-emerald-400">R$ 0,00</span>
+        <main class="max-w-md w-full mx-auto px-4 space-y-4 pt-4">
+
+            <!-- COFRE FINANCEIRO / MÉTRICA PRINCIPAL -->
+            <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-wallet text-amber-500"></i> Livre para Gastar (Mês Corrente)
+                </p>
+                <h3 id="dash-free-balance" class="text-4xl font-black tracking-tight mt-1 text-amber-500">R$ 0,00</h3>
+
+                <div class="grid grid-cols-3 gap-2 mt-5">
+                    <div class="bg-emerald-50 p-2.5 rounded-2xl border border-emerald-100 text-center">
+                        <span class="text-[8px] text-emerald-600/70 block font-bold uppercase">Renda</span>
+                        <span id="dash-income" class="text-xs font-black text-emerald-600">R$ 0,00</span>
                     </div>
-                    <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Gastos Fixos</span>
-                        <span id="dash-fixed" class="text-xs font-bold text-rose-400">R$ 0,00</span>
+                    <div class="bg-rose-50 p-2.5 rounded-2xl border border-rose-100 text-center">
+                        <span class="text-[8px] text-rose-600/70 block font-bold uppercase">Gastos Fixos</span>
+                        <span id="dash-fixed" class="text-xs font-black text-rose-600">R$ 0,00</span>
                     </div>
-                    <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Investimentos</span>
-                        <span id="dash-invest" class="text-xs font-bold text-sky-400">R$ 0,00</span>
+                    <div class="bg-sky-50 p-2.5 rounded-2xl border border-sky-100 text-center">
+                        <span class="text-[8px] text-sky-600/70 block font-bold uppercase">Futuro/Invest.</span>
+                        <span id="dash-invest" class="text-xs font-black text-sky-600">R$ 0,00</span>
                     </div>
+                </div>
+                <div class="mt-2 text-center">
+                    <span class="text-[9px] text-slate-400 font-medium">Gastos Livres acumulados no mês: <b id="dash-free-spent" class="text-amber-600">R$ 0,00</b></span>
                 </div>
             </div>
 
-            <!-- MENU DE NAVEGAÇÃO ENTRE ABAS COMPLETO -->
-            <div class="bg-slate-200/60 p-1 rounded-xl grid grid-cols-3 text-center text-[11px] font-bold text-slate-500">
-                <button id="nav-btn-launch" class="py-2 bg-white text-slate-800 rounded-lg shadow-sm">Lançar</button>
-                <button id="nav-btn-cards" class="py-2 rounded-lg">Cartões/Contas</button>
-                <button id="nav-btn-partner" class="py-2 rounded-lg">Conectar Par</button>
+            <!-- NAVEGAÇÃO ENTRE ABAS -->
+            <div class="bg-slate-200/60 p-1 rounded-2xl grid grid-cols-3 text-center text-[11px] font-bold text-slate-500">
+                <button id="nav-btn-launch" class="py-2 bg-sky-500 text-white rounded-xl shadow-sm">Lançar</button>
+                <button id="nav-btn-cards" class="py-2 rounded-xl">Cartões</button>
+                <button id="nav-btn-partner" class="py-2 rounded-xl">Parceria</button>
             </div>
 
-            <!-- ABA 1: LANÇAMENTOS COM SUPORTE A CARTÃO E PARCELAMENTO -->
-            <div id="panel-launch" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-file-invoice-dollar text-slate-400"></i><span>Novo Lançamento</span></h4>
+            <!-- ABA 1: LANÇAMENTOS -->
+            <div id="panel-launch" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-file-invoice-dollar"></i><span>Novo Lançamento</span></h4>
                 <form id="form-transaction" class="space-y-3">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Pilar do Plano</label>
-                            <select id="tx-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                            <select id="tx-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium focus:border-purple-400">
                                 <option value="income">1. Renda (Entrada)</option>
                                 <option value="fixed" selected>2. Gasto Fixo (Saída)</option>
                                 <option value="invest">3. Futuro/Invest. (Saída)</option>
@@ -186,352 +153,401 @@
                         </div>
                         <div>
                             <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Valor Total (R$)</label>
-                            <input type="number" step="0.01" id="tx-amount" required placeholder="0,00" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-bold">
+                            <input type="number" step="0.01" min="0" id="tx-amount" required placeholder="0,00" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-bold focus:border-purple-400">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Forma / Cartão / Conta</label>
-                            <select id="tx-card" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Origem / Cartão</label>
+                            <select id="tx-card" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium focus:border-purple-400">
                                 <option value="">Dinheiro / Pix à vista</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Parcelamento</label>
-                            <select id="tx-installments" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                            <select id="tx-installments" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium focus:border-purple-400">
                                 <option value="1">À Vista (1x)</option>
-                                <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option>
-                                <option value="6">6x</option><option value="10">10x</option><option value="12">12x</option>
+                                <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
+                                <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option>
+                                <option value="8">8x</option><option value="9">9x</option><option value="10">10x</option>
+                                <option value="11">11x</option><option value="12">12x</option>
                             </select>
                         </div>
                     </div>
                     <div>
                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Descrição / Estabelecimento</label>
-                        <input type="text" id="tx-description" required placeholder="Ex: Compra de insumos, Parcela Notebook, Almoço..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50">
+                        <input type="text" id="tx-description" required placeholder="Ex: Notebook, Aluguel, Almoço..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
                     </div>
-                    <button type="submit" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs transition-all">Computar Movimentação</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Computar Movimentação</button>
                 </form>
-                
-                <!-- EXTRATO COMPLETO -->
+
+                <!-- EXTRATO -->
                 <div class="pt-4 border-t border-slate-100">
-                    <h5 class="font-bold text-xs text-slate-700 mb-2 flex justify-between"><span>Extrato de Gastos</span><span id="history-count" class="text-slate-400">0</span></h5>
-                    <div id="transactions-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs"></div>
+                    <h5 class="font-bold text-xs text-slate-700 mb-2 flex justify-between"><span>Extrato Consolidado</span><span id="history-count" class="text-slate-400">0</span></h5>
+                    <div id="transactions-list" class="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs"></div>
                 </div>
             </div>
 
-            <!-- ABA 2: CADASTRO E GERENCIADOR DE CARTÕES / CONTAS -->
-            <div id="panel-cards" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hidden">
-                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-credit-card text-slate-400"></i><span>Minhas Contas e Cartões</span></h4>
+            <!-- ABA 2: CARTÕES / CONTAS -->
+            <div id="panel-cards" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-credit-card"></i><span>Minhas Contas e Cartões</span></h4>
                 <form id="form-card" class="space-y-3">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Nome do Cartão/Banco</label>
-                            <input type="text" id="card-name" required placeholder="Ex: NuBank, Itaú" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50">
+                            <input type="text" id="card-name" required placeholder="Ex: NuBank, Itaú" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
                         </div>
                         <div>
                             <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Modalidade</label>
-                            <select id="card-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                            <select id="card-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium focus:border-purple-400">
                                 <option value="credit">Cartão de Crédito</option>
                                 <option value="checking">Conta Corrente / Débito</option>
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2 rounded-xl text-xs">Salvar Novo Cartão/Conta</button>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Salvar Novo Cartão/Conta</button>
                 </form>
                 <div id="cards-list" class="space-y-2 pt-2 text-xs"></div>
             </div>
 
-            <!-- ABA 3: CONEXÃO UNIFICADA DE PARCEIRO (CASAL / TRISAL) -->
-            <div id="panel-partner" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hidden">
-                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-heart text-rose-500"></i><span>Vincular Conta do Parceiro</span></h4>
-                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+            <!-- ABA 3: PARCERIA (CASAL / TRISAL) -->
+            <div id="panel-partner" class="panel-tab bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-purple-800 flex items-center space-x-1.5"><i class="fa-solid fa-heart text-rose-500"></i><span>Vincular Conta do Parceiro</span></h4>
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
                     <p class="text-[10px] font-bold text-slate-400 uppercase">Seu código único de convite:</p>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="my-invite-code" readonly class="w-full bg-white px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-center outline-none select-all">
+                        <input type="text" id="my-invite-code" readonly class="w-full bg-white px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] font-mono text-center outline-none select-all">
+                        <button type="button" id="btn-copy-invite" class="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0"><i class="fa-solid fa-copy"></i></button>
                     </div>
                     <p class="text-[9px] text-slate-400 font-medium leading-tight">Envie este token para o seu par. Quando ele colar o seu código no painel dele, as contas se fundirão automaticamente.</p>
                 </div>
                 <form id="form-connect-partner" class="space-y-3">
                     <div>
                         <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Colar Token do Parceiro</label>
-                        <input type="text" id="partner-token" required placeholder="Cole o código do seu par aqui" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-center font-mono outline-none bg-slate-50">
+                        <input type="text" id="partner-token" required placeholder="Cole o código do seu par aqui" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-center font-mono outline-none bg-slate-50 focus:border-rose-400">
                     </div>
-                    <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">Fundir Contas e Sincronizar Saldos</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-[0.98]">Fundir Contas e Sincronizar Saldos</button>
                 </form>
             </div>
 
         </main>
     </div>
 
-    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
+    <!-- TOASTS -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
     <script type="module">
+        // ===================== CREDENCIAIS =====================
         const SUPABASE_URL = "https://ndgxuhakaqycnmojopae.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ3h1aGFrYXF5Y25tb2pvcGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjA2OTYsImV4cCI6MjA5Nzg5NjY5Nn0.Yv65UnxSeUxTJlB53zu3nD36lOqWT0Kzf7inzza2Rrs";
-        
+
         let supabase = null;
-        let activeUserSession = null;
-        let myGroupId = null;
+        let activeUser = null;     // session.user
+        let myGroupId = null;      // id usado para consolidar a parceria
+
+        // ===================== UTILITÁRIOS =====================
+        const moneyBR = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
 
         function showToast(message, type = 'success') {
             const container = document.getElementById("toast-container");
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+            const color = type === 'success' ? 'bg-emerald-500' : 'bg-rose-500';
             const toast = document.createElement("div");
-            toast.className = `p-3 rounded-xl shadow-lg text-white text-xs font-bold transition-all flex items-center mb-2 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
-            toast.innerText = message;
+            toast.className = `toast-anim ${color} pointer-events-auto p-3 rounded-2xl shadow-lg text-white text-xs font-bold flex items-center gap-2 mb-2`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
             container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
         function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.classList.add('hidden'); });
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             const target = document.getElementById(screenId);
-            if (target) { target.classList.remove('hidden'); target.classList.add('active'); }
+            if (target) target.classList.add('active');
         }
 
         function switchTab(tabId, btnId) {
             document.querySelectorAll('.panel-tab').forEach(p => p.classList.add('hidden'));
             document.getElementById(tabId).classList.remove('hidden');
-            
-            document.querySelectorAll('[id^="nav-btn-"]').forEach(b => b.className = "py-2 rounded-lg");
-            document.getElementById(btnId).className = "py-2 bg-white text-slate-800 rounded-lg shadow-sm";
+            document.querySelectorAll('[id^="nav-btn-"]').forEach(b => b.className = "py-2 rounded-xl");
+            document.getElementById(btnId).className = "py-2 bg-sky-500 text-white rounded-xl shadow-sm";
         }
 
+        // Máscara de WhatsApp (XX) XXXXX-XXXX
+        function maskWhatsapp(value) {
+            let v = value.replace(/\D/g, "").slice(0, 11);
+            if (v.length > 6)      v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+            else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+            else if (v.length > 0) v = `(${v}`;
+            return v;
+        }
+
+        // ===================== AUTENTICAÇÃO À PROVA DE FALHAS =====================
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                activeUserSession = session.user;
-                document.getElementById("my-invite-code").value = session.user.id;
-                
-                const userEmail = session.user.email ? session.user.email.toLowerCase() : "";
-                
-                if (userEmail === 'victortrovo@me.com') {
-                    document.getElementById("badge-role").innerText = "Admin";
-                    document.getElementById("app-user-name").innerText = "Victor Trovo";
-                    showScreen("screen-app");
-                    loadAppData();
-                    return;
-                }
 
-                const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-                myGroupId = profile?.group_id || session.user.id;
-                
-                document.getElementById("badge-role").innerText = profile?.role || "Membro";
-                document.getElementById("app-user-name").innerText = profile?.full_name || "Membro Ativo";
-                showScreen("screen-app");
-                loadAppData();
-            } else {
-                showScreen("screen-auth");
+            if (!session) { showScreen("screen-auth"); return; }
+
+            activeUser = session.user;
+            document.getElementById("my-invite-code").value = session.user.id;
+
+            // Dados de fallback retirados imediatamente do metadata da sessão.
+            const meta = session.user.user_metadata || {};
+            const fallbackName = meta.full_name || (session.user.email ? session.user.email.split('@')[0] : "Membro Ativo");
+            const isAdmin = (session.user.email || "").toLowerCase() === 'victortrovo@me.com';
+
+            // Aplica o fallback ANTES de tentar o banco — a tela nunca trava em branco.
+            document.getElementById("app-user-name").innerText = fallbackName;
+            document.getElementById("badge-role").innerText = isAdmin ? "Admin" : "Membro";
+            myGroupId = session.user.id;
+
+            // CONTINGÊNCIA CRÍTICA: leitura de perfil com timeout (anti-loop).
+            // Se demorar, falhar ou retornar null, seguimos com os dados de fallback.
+            try {
+                const profilePromise = supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: null, timedOut: true }), 4000));
+                const { data: profile } = await Promise.race([profilePromise, timeout]);
+
+                if (profile) {
+                    myGroupId = profile.group_id || session.user.id;
+                    document.getElementById("app-user-name").innerText = profile.full_name || fallbackName;
+                    document.getElementById("badge-role").innerText = (profile.role || (isAdmin ? "admin" : "client"));
+                }
+            } catch (_) {
+                /* mantém o fallback — não bloqueia a renderização */
             }
+
+            showScreen("screen-app");
+            loadAppData();
         }
 
-        async function loadAppData() {
+        function loadAppData() {
             fetchDashboardAndTransactions();
             fetchCards();
         }
 
-        // MATEMÁTICA FINANCEIRA COMPLETA E EXTRATO (SUPABASE COM LOCALSTORAGE BACKUP)
+        // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
         async function fetchDashboardAndTransactions() {
             let totalIncome = 0, totalFixed = 0, totalInvest = 0, totalFree = 0;
             let listHtml = "";
 
-            // Tentativa de leitura do banco unificado por grupo/parceria ou ID próprio
-            const searchId = myGroupId || activeUserSession?.id;
-            let { data: txs } = await supabase.from('transactions').select('*').or(`user_id.eq.${searchId},group_id.eq.${searchId}`).order('created_at', { ascending: false });
-            
-            // Backup LocalStorage
-            let localTxs = JSON.parse(localStorage.getItem(`vr_txs_${searchId}`) || "[]");
-            let combinedTxs = txs && txs.length > 0 ? txs : localTxs;
+            const searchId = myGroupId || activeUser?.id;
+            let txs = [];
+            try {
+                const { data } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .order('created_at', { ascending: false });
+                txs = data || [];
+            } catch (_) { txs = []; }
 
-            document.getElementById("history-count").innerText = combinedTxs.length;
+            document.getElementById("history-count").innerText = txs.length;
 
-            if (combinedTxs.length > 0) {
-                combinedTxs.forEach(tx => {
-                    const amt = parseFloat(tx.amount);
-                    if (tx.type === 'income') totalIncome += amt;
-                    else if (tx.type === 'fixed') totalFixed += amt;
+            if (txs.length > 0) {
+                txs.forEach(tx => {
+                    const amt = parseFloat(tx.amount) || 0;
+                    if (tx.type === 'income')      totalIncome += amt;
+                    else if (tx.type === 'fixed')  totalFixed  += amt;
                     else if (tx.type === 'invest') totalInvest += amt;
-                    else if (tx.type === 'free') totalFree += amt;
+                    else if (tx.type === 'free')   totalFree   += amt;
 
                     const badge = { income: 'bg-emerald-50 text-emerald-600', fixed: 'bg-rose-50 text-rose-600', invest: 'bg-sky-50 text-sky-600', free: 'bg-amber-50 text-amber-600' }[tx.type];
                     const label = { income: 'Renda', fixed: 'Fixo', invest: 'Futuro', free: 'Livre' }[tx.type];
                     const isParc = tx.total_installments > 1 ? ` (${tx.current_installment}/${tx.total_installments})` : "";
+                    const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : "";
 
                     listHtml += `
                         <div class="flex items-center justify-between p-2 border-b border-slate-50">
-                            <div>
-                                <span class="font-bold text-slate-700 block">${tx.description}${isParc}</span>
-                                <span class="text-[8px] font-bold px-1.5 py-0.2 rounded ${badge}">${label}</span>
+                            <div class="min-w-0">
+                                <span class="font-bold text-slate-700 block truncate">${tx.description || 'Sem descrição'}${isParc}</span>
+                                <span class="text-[8px] font-bold px-1.5 py-0.5 rounded ${badge}">${label}</span>
+                                <span class="text-[8px] text-slate-400 ml-1">${dateStr}</span>
                             </div>
-                            <span class="font-black ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-600'}">
-                                ${tx.type === 'income' ? '+' : '-'} R$ ${amt.toFixed(2).replace('.', ',')}
+                            <span class="font-black shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-600'}">
+                                ${tx.type === 'income' ? '+' : '-'} ${moneyBR(amt)}
                             </span>
-                        </div>
-                    `;
+                        </div>`;
                 });
                 document.getElementById("transactions-list").innerHTML = listHtml;
             } else {
-                document.getElementById("transactions-list").innerHTML = `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum lançamento.</p>`;
+                document.getElementById("transactions-list").innerHTML = `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum lançamento ainda.</p>`;
             }
 
             const freeBalance = totalIncome - totalFixed - totalInvest - totalFree;
-            const f = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-            
-            document.getElementById("dash-free-balance").innerText = f(freeBalance);
-            document.getElementById("dash-income").innerText = f(totalIncome);
-            document.getElementById("dash-fixed").innerText = f(totalFixed);
-            document.getElementById("dash-invest").innerText = f(totalInvest);
+            document.getElementById("dash-free-balance").innerText = moneyBR(freeBalance);
+            document.getElementById("dash-income").innerText  = moneyBR(totalIncome);
+            document.getElementById("dash-fixed").innerText   = moneyBR(totalFixed);
+            document.getElementById("dash-invest").innerText  = moneyBR(totalInvest);
+            document.getElementById("dash-free-spent").innerText = moneyBR(totalFree);
         }
 
-        // CARREGAR SELETOR DE CARTÕES/CONTAS
+        // ===================== CARTÕES / CONTAS =====================
         async function fetchCards() {
-            const userId = activeUserSession?.id;
-            let { data: cards } = await supabase.from('cards').select('*').eq('user_id', userId);
-            let localCards = JSON.parse(localStorage.getItem(`vr_cards_${userId}`) || "[]");
-            let finalCards = cards && cards.length > 0 ? cards : localCards;
+            const userId = activeUser?.id;
+            let cards = [];
+            try {
+                const { data } = await supabase.from('cards').select('*').eq('user_id', userId).order('created_at', { ascending: true });
+                cards = data || [];
+            } catch (_) { cards = []; }
 
             let selectHtml = '<option value="">Dinheiro / Pix à vista</option>';
             let listHtml = "";
 
-            finalCards.forEach(c => {
-                selectHtml += `<option value="${c.id}">${c.name} (${c.type === 'credit' ? 'Crédito' : 'Débito/Conta'})</option>`;
+            cards.forEach(c => {
+                const tipoLabel = c.type === 'credit' ? 'Crédito' : 'Débito/Conta';
+                selectHtml += `<option value="${c.id}">${c.name} (${tipoLabel})</option>`;
                 listHtml += `
-                    <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <span class="font-bold text-slate-700"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-blue-500'} mr-1.5"></i>${c.name}</span>
-                        <span class="text-[9px] font-bold uppercase text-slate-400">${c.type === 'credit' ? 'Crédito' : 'Conta'}</span>
-                    </div>
-                `;
+                    <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                        <span class="font-bold text-slate-700"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-sky-500'} mr-1.5"></i>${c.name}</span>
+                        <span class="text-[9px] font-bold uppercase text-slate-400">${tipoLabel}</span>
+                    </div>`;
             });
 
             document.getElementById("tx-card").innerHTML = selectHtml;
-            document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-slate-400 text-center py-4">Nenhum cartão cadastrado.</p>`;
+            document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum cartão cadastrado.</p>`;
         }
 
+        // ===================== INICIALIZAÇÃO (window.onload) =====================
         window.onload = function () {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             checkAuth();
 
-            // LISTENERS DO MENU DE ABAS
+            // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
             document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
             document.getElementById('nav-btn-partner').addEventListener('click', () => switchTab('panel-partner', 'nav-btn-partner'));
 
-            // PROCESSADOR DE PARCELAMENTO E ADIÇÃO DE MOVIMENTAÇÃO
-            document.getElementById('form-transaction').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const type = document.getElementById('tx-type').value;
-                const totalAmount = parseFloat(document.getElementById('tx-amount').value);
-                const card_id = document.getElementById('tx-card').value || null;
-                const installments = parseInt(document.getElementById('tx-installments').value);
-                const description = document.getElementById('tx-description').value.trim();
-
-                const valPorParcela = totalAmount / installments;
-                const searchId = myGroupId || activeUserSession?.id;
-                let localArray = JSON.parse(localStorage.getItem(`vr_txs_${searchId}`) || "[]");
-
-                // Loop dinâmico para gerar os parcelamentos futuros de forma automatizada
-                for (let i = 1; i <= installments; i++) {
-                    const txObject = {
-                        user_id: activeUserSession?.id,
-                        group_id: myGroupId,
-                        type: type,
-                        amount: valPorParcela,
-                        description: description,
-                        card_id: card_id,
-                        current_installment: i,
-                        total_installments: installments,
-                        created_at: new Date(new Date().setMonth(new Date().getMonth() + (i - 1)))
-                    };
-
-                    const { error } = await supabase.from('transactions').insert([txObject]);
-                    if (error) { localArray.push(txObject); }
-                }
-
-                localStorage.setItem(`vr_txs_${searchId}`, JSON.stringify(localArray));
-                showToast(installments > 1 ? `Parcelamento em ${installments}x computado!` : "Lançamento efetuado!");
-                document.getElementById('form-transaction').reset();
-                fetchDashboardAndTransactions();
+            // ---- Máscara de WhatsApp ----
+            document.getElementById('register-whatsapp').addEventListener('input', (e) => {
+                e.target.value = maskWhatsapp(e.target.value);
             });
 
-            // SALVAR CARTÃO / CONTA
-            document.getElementById('form-card').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const name = document.getElementById('card-name').value.trim();
-                const type = document.getElementById('card-type').value;
-                const userId = activeUserSession?.id;
+            // ---- Tabs de autenticação ----
+            const setAuthTab = (active) => {
+                const login = active === 'login';
+                document.getElementById('form-login').classList.toggle('hidden', !login);
+                document.getElementById('form-register').classList.toggle('hidden', login);
+                document.getElementById('auth-tab-login').className = `flex-1 text-center font-bold text-xs pb-2 ${login ? 'text-purple-700 border-b-2 border-purple-700' : 'text-slate-400'}`;
+                document.getElementById('auth-tab-register').className = `flex-1 text-center font-bold text-xs pb-2 ${login ? 'text-slate-400' : 'text-purple-700 border-b-2 border-purple-700'}`;
+            };
+            document.getElementById('auth-tab-login').addEventListener('click', () => setAuthTab('login'));
+            document.getElementById('auth-tab-register').addEventListener('click', () => setAuthTab('register'));
 
-                const cardObj = { user_id: userId, name, type };
-                const { error } = await supabase.from('cards').insert([cardObj]);
-                
-                let localCards = JSON.parse(localStorage.getItem(`vr_cards_${userId}`) || "[]");
-                localCards.push(cardObj);
-                localStorage.setItem(`vr_cards_${userId}`, JSON.stringify(localCards));
-
-                showToast("Cartão/Conta registrado com sucesso!");
-                document.getElementById('form-card').reset();
-                fetchCards();
-            });
-
-            // VINCULAR PARCEIRO (CASAL / TRISAL) - UNIÃO E FUSÃO DE CONTAS
-            document.getElementById('form-connect-partner').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const partnerId = document.getElementById('partner-token').value.trim();
-
-                if (partnerId === activeUserSession?.id) {
-                    showToast("Você não pode colocar o seu próprio código.", "error");
-                    return;
-                }
-
-                // Vincula os perfis sob o mesmo ID de grupo no banco de dados para consolidar os extratos
-                const { error } = await supabase.from('profiles').update({ group_id: partnerId }).eq('id', activeUserSession?.id);
-                
-                myGroupId = partnerId;
-                showToast("Contas integradas! Carregando saldo consolidado...");
-                document.getElementById('form-connect-partner').reset();
-                setTimeout(loadAppData, 1000);
-            });
-
-            // AUTENTICAÇÃO (LOGIN / REGISTRO)
-            document.getElementById('auth-tab-login').addEventListener('click', () => {
-                document.getElementById('form-login').classList.remove('hidden'); document.getElementById('form-register').classList.add('hidden');
-                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900";
-                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
-            });
-            document.getElementById('auth-tab-register').addEventListener('click', () => {
-                document.getElementById('form-register').classList.remove('hidden'); document.getElementById('form-login').classList.add('hidden');
-                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900";
-                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
-            });
-
+            // ---- Login ----
             document.getElementById('form-login').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value.trim();
                 const password = document.getElementById('login-password').value;
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) showToast("Erro no acesso.", "error");
-                else { showToast("Acesso autorizado!"); checkAuth(); }
+                if (error) { showToast("Erro no acesso: verifique e-mail e senha.", "error"); return; }
+                showToast("Acesso autorizado!");
+                checkAuth();
             });
 
+            // ---- Cadastro ----
             document.getElementById('form-register').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('register-name').value;
+                const name = document.getElementById('register-name').value.trim();
                 const whatsappRaw = document.getElementById('register-whatsapp').value.replace(/\D/g, "");
                 const email = document.getElementById('register-email').value.trim();
                 const password = document.getElementById('register-password').value;
                 const passwordConfirm = document.getElementById('register-password-confirm').value;
 
-                if (whatsappRaw.length !== 11) { showToast("WhatsApp inválido.", "error"); return; }
-                if (password !== passwordConfirm) { showToast("Senhas diferentes.", "error"); return; }
+                if (whatsappRaw.length !== 11) { showToast("WhatsApp inválido. Use DDD + número.", "error"); return; }
+                if (password.length < 6)       { showToast("A senha precisa de no mínimo 6 caracteres.", "error"); return; }
+                if (password !== passwordConfirm) { showToast("As senhas não conferem.", "error"); return; }
 
                 const { error } = await supabase.auth.signUp({
-                    email, password, options: { data: { full_name: name, whatsapp: whatsappRaw } }
+                    email, password,
+                    options: { data: { full_name: name, whatsapp: whatsappRaw } }
                 });
-                if (error) showToast(error.message, "error");
-                else { showToast("Conta criada! Verifique seu e-mail."); checkAuth(); }
+                if (error) { showToast(error.message, "error"); return; }
+                showToast("Conta criada com sucesso! 🎉");
+                checkAuth();
             });
 
+            // ---- Logout ----
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
-                showAuthScreen();
+                activeUser = null; myGroupId = null;
+                showScreen("screen-auth");
+                showToast("Sessão encerrada.");
+            });
+
+            // ---- Lançamento + Motor de Parcelamento Automático ----
+            document.getElementById('form-transaction').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const type = document.getElementById('tx-type').value;
+                const totalAmount = parseFloat(document.getElementById('tx-amount').value);
+                const card_id = document.getElementById('tx-card').value || null;
+                const installments = parseInt(document.getElementById('tx-installments').value, 10);
+                const description = document.getElementById('tx-description').value.trim();
+
+                if (!(totalAmount > 0)) { showToast("Informe um valor válido.", "error"); return; }
+
+                const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
+                const rows = [];
+
+                // Loop que gera uma transação por parcela, somando +1 mês a cada iteração.
+                for (let i = 1; i <= installments; i++) {
+                    const dataParcela = new Date();
+                    dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+                    rows.push({
+                        user_id: activeUser?.id,
+                        group_id: myGroupId,
+                        type,
+                        amount: valorParcela,
+                        description,
+                        card_id,
+                        current_installment: i,
+                        total_installments: installments,
+                        created_at: dataParcela.toISOString()
+                    });
+                }
+
+                const { error } = await supabase.from('transactions').insert(rows);
+                if (error) { showToast("Erro ao salvar: " + error.message, "error"); return; }
+
+                showToast(installments > 1 ? `Parcelamento em ${installments}x computado!` : "Lançamento efetuado!");
+                document.getElementById('form-transaction').reset();
+                fetchDashboardAndTransactions();
+            });
+
+            // ---- Salvar Cartão / Conta ----
+            document.getElementById('form-card').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('card-name').value.trim();
+                const type = document.getElementById('card-type').value;
+
+                const { error } = await supabase.from('cards').insert([{ user_id: activeUser?.id, name, type }]);
+                if (error) { showToast("Erro ao salvar cartão: " + error.message, "error"); return; }
+
+                showToast("Cartão/Conta registrado!");
+                document.getElementById('form-card').reset();
+                fetchCards(); // atualiza o seletor de lançamentos na hora
+            });
+
+            // ---- Copiar código de convite ----
+            document.getElementById('btn-copy-invite').addEventListener('click', async () => {
+                const code = document.getElementById('my-invite-code').value;
+                try { await navigator.clipboard.writeText(code); showToast("Código copiado!"); }
+                catch (_) { showToast("Selecione e copie manualmente.", "error"); }
+            });
+
+            // ---- Conectar Parceiro (fundir contas) ----
+            document.getElementById('form-connect-partner').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const partnerId = document.getElementById('partner-token').value.trim();
+                if (!partnerId) return;
+                if (partnerId === activeUser?.id) { showToast("Você não pode usar o seu próprio código.", "error"); return; }
+
+                const { error } = await supabase.from('profiles').update({ group_id: partnerId }).eq('id', activeUser?.id);
+                if (error) { showToast("Erro ao fundir contas: " + error.message, "error"); return; }
+
+                myGroupId = partnerId;
+                showToast("Contas integradas! Sincronizando saldos...");
+                document.getElementById('form-connect-partner').reset();
+                loadAppData();
             });
         };
     </script>
