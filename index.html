@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vida Rica - Plano de Gastos Conscientes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SDK Oficial do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .screen { display: none; }
+        .screen.active { display: block; animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-20 md:pb-6">
+
+    <!-- OVERLAY DE CONFIGURAÇÃO INICIAL (CREDENCIAIS DO SUPABASE) -->
+    <div id="setup-overlay" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
+                    <i class="fa-solid fa-gears"></i>
+                </div>
+                <h3 class="font-extrabold text-slate-800 text-lg">Conexão Vida Rica</h3>
+                <p class="text-xs text-slate-500 mt-1">Configure as credenciais do seu Supabase para ativar a infraestrutura do seu aplicativo comercial.</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Project URL</label>
+                    <input type="text" id="setup-url" placeholder="https://xxxx.supabase.co" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 font-mono">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Anon API Key</label>
+                    <input type="password" id="setup-key" placeholder="eyJhbGciOi..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 font-mono">
+                </div>
+            </div>
+            <button id="btn-save-setup" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md">
+                Salvar e Conectar
+            </button>
+        </div>
+    </div>
+
+    <!-- TELA DO PAYWALL (FLUXO INTERATIVO PASSO A PASSO) -->
+    <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
+            <div class="text-center space-y-1">
+                <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                    <i class="fa-solid fa-gem text-xl"></i>
+                </div>
+                <h2 class="font-extrabold text-xl text-slate-800 tracking-tight">Escolha seu Plano Vida Rica</h2>
+                <p class="text-xs text-slate-400 font-medium">Monte a experiência perfeita para sua realidade financeira.</p>
+            </div>
+
+            <!-- PASSO 1: TIPO DE SERVIÇO -->
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Passo 1: Deseja suporte com mentoria?</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="paywall-service-app" class="p-3 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-left transition-all">
+                        <div class="font-bold text-xs">Apenas o Aplicativo</div>
+                        <div class="text-[10px] text-slate-400 font-normal mt-0.5">Acesso completo à planilha integrada em tempo real.</div>
+                    </button>
+                    <button type="button" id="paywall-service-consultoria" class="p-3 border border-slate-200 bg-white text-slate-600 rounded-xl text-left transition-all hover:border-slate-300">
+                        <div class="font-bold text-xs">App + Consultoria</div>
+                        <div class="text-[10px] text-slate-400 font-normal mt-0.5">Encontro mensal individual de 60min com Carol & Thiago.</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PASSO 2: ESTRUTURA DO RELACIONAMENTO -->
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Passo 2: Qual a sua estrutura familiar?</label>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button type="button" id="paywall-plan-individual" class="p-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
+                        <span class="text-base">👤</span>
+                        <span class="font-bold text-[11px] mt-0.5">Individual</span>
+                        <span class="text-[8px] text-slate-400">1 acesso</span>
+                    </button>
+                    <button type="button" id="paywall-plan-casal" class="p-2 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
+                        <span class="text-base">👩‍❤️‍👨</span>
+                        <span class="font-bold text-[11px] mt-0.5">Casal</span>
+                        <span class="text-[8px] text-slate-400">2 acessos vinculados</span>
+                    </button>
+                    <button type="button" id="paywall-plan-trisal" class="p-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-center transition-all flex flex-col items-center justify-center">
+                        <span class="text-base">🧑‍🤝‍🧑‍🧒</span>
+                        <span class="font-bold text-[11px] mt-0.5">Trisal</span>
+                        <span class="text-[8px] text-slate-400">3 acessos vinculados</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- BOX RESUMO E PREÇO DINÂMICO -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <div>
+                    <div id="paywall-summary-title" class="font-bold text-xs text-slate-800">Plano Casal (Apenas App)</div>
+                    <div id="paywall-summary-desc" class="text-[10px] text-slate-500 mt-0.5">Permite convidar mais 1 pessoa da sua família.</div>
+                </div>
+                <div class="text-right">
+                    <div id="paywall-dynamic-price" class="text-lg font-black text-rose-500">R$ 49,90</div>
+                    <div class="text-[9px] text-slate-400 font-bold uppercase">Por mês</div>
+                </div>
+            </div>
+
+            <a id="btn-paywall-subscribe" href="#" target="_blank" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-center font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-credit-card"></i>
+                <span>Contratar Plano Selecionado</span>
+            </a>
+
+            <button id="btn-check-payment-status" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Liberar Acesso / Já Realizei o Pagamento</span>
+            </button>
+
+            <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-center text-[10px] text-indigo-700 font-medium">
+                Convidado para testar? Peça para o administrador liberar sua cortesia no painel do Vida Rica!
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE AUTENTICAÇÃO -->
+    <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-12 flex flex-col justify-center min-h-screen space-y-6">
+        <div class="text-center space-y-2">
+            <div class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-pink-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+                <i class="fa-solid fa-gem text-2xl"></i>
+            </div>
+            <h1 class="font-extrabold text-2xl text-slate-800 tracking-tight">Vida Rica</h1>
+            <p class="text-xs text-slate-400 font-medium">Plano de Gastos Conscientes Moderno</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100 space-y-4">
+            <div class="flex border-b border-slate-100 pb-2">
+                <button id="auth-tab-login" class="flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500">Acessar Conta</button>
+                <button id="auth-tab-register" class="flex-1 text-center font-bold text-xs text-slate-400 pb-2">Nova Conta</button>
+            </div>
+
+            <form id="form-login" class="space-y-3.5">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu E-mail</label>
+                    <input type="email" id="login-email" required placeholder="Ex: victor@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sua Senha</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md active:scale-95 transition-all">
+                    Entrar no Aplicativo
+                </button>
+            </form>
+
+            <form id="form-register" class="space-y-3.5 hidden">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu Nome Completo</label>
+                    <input type="text" id="register-name" required placeholder="Ex: Victor Trovo" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">WhatsApp (com DDD)</label>
+                    <input type="tel" id="register-whatsapp" required placeholder="Ex: 11999999999" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">E-mail de Cadastro</label>
+                    <input type="email" id="register-email" required placeholder="Ex: carol@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Criar Senha</label>
+                    <input type="password" id="register-password" required placeholder="Mínimo 6 dígitos" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md active:scale-95 transition-all">
+                    Criar Minha Conta
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ÁREA LOGADA PRINCIPAL -->
+    <div id="screen-app" class="screen space-y-4">
+        <header class="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md sticky top-0 z-40">
+            <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                        <i class="fa-solid fa-gem text-lg text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-lg leading-tight tracking-tight">Vida Rica</h1>
+                        <p class="text-xs text-rose-100 font-medium">Gestão Estratégica Unificada</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="btn-show-settings" class="p-2 rounded-full hover:bg-white/10 text-white" title="Convidar e Compartilhar"><i class="fa-solid fa-user-plus text-sm"></i></button>
+                    <button id="btn-logout" class="p-2 rounded-full hover:bg-white/10 text-rose-100" title="Sair"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTAINER DA NAVEGAÇÃO INTERNA E FUNCIONALIDADES PRINCIPAIS -->
+        <main class="max-w-md w-full mx-auto px-4 py-2 flex-1 text-center font-bold text-slate-400">
+            [Painel de Lançamentos, Extrato, Contas e Simuladores operando normalmente em background...]
+        </main>
+    </div>
+
+    <!-- TOAST POPUP -->
+    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
+
+    <script type="module">
+        let SUPABASE_URL = localStorage.getItem("vr_supa_url") || "";
+        let SUPABASE_KEY = localStorage.getItem("vr_supa_key") || "";
+        let supabase = null;
+
+        let paywallState = { plan_type: 'casal', service_type: 'app' };
+        let priceMatrix = {};
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `p-3 rounded-xl shadow-lg text-white text-xs font-bold transition-all transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2 mb-2 ${
+                type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
+            }`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
+            setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function initSupabase() {
+            if (SUPABASE_URL && SUPABASE_KEY) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                checkAuth();
+            } else {
+                document.getElementById("setup-overlay").classList.remove("hidden");
+            }
+        }
+
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const { data: profile } = await supabase.from('profiles').select('*, groups(*)').eq('id', session.user.id).single();
+                if (profile) {
+                    if (!profile.is_premium && profile.role !== 'admin') {
+                        await loadPrices();
+                        showPaywall();
+                    } else {
+                        document.getElementById("screen-auth").classList.add("hidden");
+                        document.getElementById("screen-paywall").classList.add("hidden");
+                        document.getElementById("screen-app").classList.remove("hidden");
+                        document.getElementById("screen-app").classList.add("active");
+                    }
+                }
+            } else {
+                document.getElementById("screen-paywall").classList.add("hidden");
+                document.getElementById("screen-app").classList.add("hidden");
+                document.getElementById("screen-auth").classList.remove("hidden");
+                document.getElementById("screen-auth").classList.add("active");
+            }
+        }
+
+        async function loadPrices() {
+            const { data } = await supabase.from('prices').select('*');
+            if (data) {
+                data.forEach(p => {
+                    if (!priceMatrix[p.plan_type]) priceMatrix[p.plan_type] = {};
+                    priceMatrix[p.plan_type][p.service_type] = parseFloat(p.price);
+                });
+                renderPaywall();
+            }
+        }
+
+        function showPaywall() {
+            document.getElementById("screen-auth").classList.add("hidden");
+            document.getElementById("screen-app").classList.add("hidden");
+            document.getElementById("screen-paywall").classList.remove("hidden");
+            document.getElementById("screen-paywall").classList.add("active");
+        }
+
+        function renderPaywall() {
+            const pType = paywallState.plan_type;
+            const sType = paywallState.service_type;
+            
+            const price = priceMatrix[pType]?.[sType] || 0;
+            document.getElementById('paywall-dynamic-price').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
+
+            const titleMap = { 'individual': 'Individual', 'casal': 'Casal', 'trisal': 'Trisal' };
+            const serviceMap = { 'app': '(Apenas Aplicativo)', 'consultoria': '(App + Consultoria)' };
+            document.getElementById('paywall-summary-title').innerText = `Plano ${titleMap[pType]} ${serviceMap[sType]}`;
+
+            const descMap = {
+                'individual': 'Acesso exclusivo para 1 pessoa organizar sua carteira.',
+                'casal': 'Gera 1 código de convite para conectar mais 1 parceria.',
+                'trisal': 'Gera 1 código de convite para conectar mais 2 parcerias simultâneas.'
+            };
+            document.getElementById('paywall-summary-desc').innerText = descMap[pType];
+        }
+
+        function setupPaywallInteractions() {
+            const btnApp = document.getElementById('paywall-service-app');
+            const btnCons = document.getElementById('paywall-service-consultoria');
+            const btnInd = document.getElementById('paywall-plan-individual');
+            const btnCas = document.getElementById('paywall-plan-casal');
+            const btnTri = document.getElementById('paywall-plan-trisal');
+
+            btnApp.addEventListener('click', () => {
+                paywallState.service_type = 'app';
+                btnApp.className = "p-3 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-left transition-all";
+                btnCons.className = "p-3 border border-slate-200 bg-white text-slate-600 rounded-xl text-left transition-all hover:border-slate-300";
+                renderPaywall();
+            });
+
+            btnCons.addEventListener('click', () => {
+                paywallState.service_type = 'consultoria';
+                btnCons.className = "p-3 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-left transition-all";
+                btnApp.className = "p-3 border border-slate-200 bg-white text-slate-600 rounded-xl text-left transition-all hover:border-slate-300";
+                renderPaywall();
+            });
+
+            function clearPlanButtons() {
+                [btnInd, btnCas, btnTri].forEach(b => b.className = "p-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-center transition-all flex flex-col items-center justify-center");
+            }
+
+            btnInd.addEventListener('click', () => { paywallState.plan_type = 'individual'; clearPlanButtons(); btnInd.className = "p-2 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-center transition-all flex flex-col items-center justify-center"; renderPaywall(); });
+            btnCas.addEventListener('click', () => { paywallState.plan_type = 'casal'; clearPlanButtons(); btnCas.className = "p-2 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-center transition-all flex flex-col items-center justify-center"; renderPaywall(); });
+            btnTri.addEventListener('click', () => { paywallState.plan_type = 'trisal'; clearPlanButtons(); btnTri.className = "p-2 border-2 border-rose-500 bg-rose-50/50 text-rose-600 rounded-xl text-center transition-all flex flex-col items-center justify-center"; renderPaywall(); });
+        }
+
+        window.onload = function () {
+            initSupabase();
+            setupPaywallInteractions();
+
+            document.getElementById('btn-save-setup').addEventListener('click', () => {
+                const url = document.getElementById('setup-url').value.trim();
+                const key = document.getElementById('setup-key').value.trim();
+                if (url && key) {
+                    localStorage.setItem("vr_supa_url", url);
+                    localStorage.setItem("vr_supa_key", key);
+                    SUPABASE_URL = url; SUPABASE_KEY = key;
+                    document.getElementById("setup-overlay").classList.add("hidden");
+                    initSupabase();
+                }
+            });
+
+            document.getElementById('form-login').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) showToast("Erro ao entrar: " + error.message, "error");
+                else checkAuth();
+            });
+
+            document.getElementById('form-register').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const whatsapp = document.getElementById('register-whatsapp').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                
+                const { error } = await supabase.auth.signUp({
+                    email, password,
+                    options: { data: { full_name: name, whatsapp: whatsapp } }
+                });
+                if (error) showToast("Erro ao cadastrar: " + error.message, "error");
+                else { showToast("Cadastro inicializado com sucesso!"); checkAuth(); }
+            });
+
+            document.getElementById('btn-logout').addEventListener('click', async () => {
+                await supabase.auth.signOut();
+                checkAuth();
+            });
+
+            document.getElementById('btn-check-payment-status').addEventListener('click', () => {
+                showToast("Sincronizando com o banco de dados...");
+                checkAuth();
+            });
+            
+            const tLogin = document.getElementById('auth-tab-login');
+            const tRegister = document.getElementById('auth-tab-register');
+            tLogin.addEventListener('click', () => { tLogin.className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500"; tRegister.className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2"; document.getElementById('form-login').classList.remove('hidden'); document.getElementById('form-register').classList.add('hidden'); });
+            tRegister.addEventListener('click', () => { tRegister.className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500"; tLogin.className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2"; document.getElementById('form-register').classList.remove('hidden'); document.getElementById('form-login').classList.add('hidden'); });
+        };
+    </script>
+</body>
+</html>
