@@ -19,6 +19,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-6">
 
+    <!-- TELA DO PAYWALL -->
     <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 hidden overflow-y-auto">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
             <div class="text-center space-y-1">
@@ -70,6 +71,7 @@
         </div>
     </div>
 
+    <!-- TELA DE AUTENTICAÇÃO -->
     <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-12 flex flex-col justify-center min-h-screen space-y-6">
         <div class="text-center space-y-2">
             <div class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-pink-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
@@ -102,24 +104,29 @@
                     <input type="text" id="register-name" required placeholder="Ex: Victor" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">WhatsApp</label>
-                    <input type="tel" id="register-whatsapp" required placeholder="Ex: 1199999999" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">WhatsApp (Celular)</label>
+                    <input type="tel" id="register-whatsapp" required placeholder="(11) 99999-9999" maxlength="15" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50 font-mono">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">E-mail</label>
-                    <input type="email" id="register-email" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="email" id="register-email" required placeholder="Ex: nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Senha</label>
-                    <input type="password" id="register-password" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="password" id="register-password" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Confirme a Senha</label>
+                    <input type="password" id="register-password-confirm" required placeholder="Repita a senha anterior" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all mt-2">
                     Criar Minha Conta
                 </button>
             </form>
         </div>
     </section>
 
+    <!-- ÁREA LOGADA PRINCIPAL -->
     <div id="screen-app" class="screen space-y-4">
         <header class="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md sticky top-0 z-40">
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
@@ -140,6 +147,7 @@
         </header>
 
         <main class="max-w-md w-full mx-auto px-4 py-2 space-y-4">
+            <!-- CARD PERFIL -->
             <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
                 <div>
                     <h2 id="app-user-name" class="font-bold text-base text-slate-800">Carregando...</h2>
@@ -151,6 +159,7 @@
                 </div>
             </div>
 
+            <!-- QUADRO FINANCEIRO RESUMIDO -->
             <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Saldo Consolidado do Grupo</p>
                 <h3 class="text-3xl font-black mt-1">R$ 0,00</h3>
@@ -166,6 +175,7 @@
                 </div>
             </div>
 
+            <!-- MENUS OPERACIONAIS -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-white p-4 rounded-2xl border border-slate-100 text-left space-y-1 shadow-sm">
                     <div class="w-8 h-8 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center mb-1"><i class="fa-solid fa-arrow-right-arrow-left text-xs"></i></div>
@@ -184,7 +194,6 @@
     <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
     <script type="module">
-        // CHAVES DEFINITIVAS EMBUTIDAS NATIVAMENTE NO CÓDIGO DO CLIENTE
         const SUPABASE_URL = "https://ndgxuhakaqycnmojopae.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ3h1aGFrYXF5Y25tb2pvcGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjA2OTYsImV4cCI6MjA5Nzg5NjY5Nn0.Yv65UnxSeUxTJlB53zu3nD36lOqWT0Kzf7inzza2Rrs";
         
@@ -258,16 +267,44 @@
             document.getElementById('paywall-dynamic-price').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
         }
 
+        // MÁSCARA EM TEMPO REAL PARA CELULAR / WHATSAPP
+        function formatWhatsApp(value) {
+            if (!value) return "";
+            value = value.replace(/\D/g, "");
+            if (value.length > 11) value = value.slice(0, 11);
+            
+            if (value.length > 7) {
+                return `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+            } else if (value.length > 2) {
+                return `(${value.slice(0, 2)}) ${value.slice(2)}`;
+            } else if (value.length > 0) {
+                return `(${value}`;
+            }
+            return value;
+        }
+
         window.onload = function () {
             initSupabase();
 
             document.getElementById('auth-tab-login').addEventListener('click', () => {
                 document.getElementById('form-login').classList.remove('hidden');
                 document.getElementById('form-register').classList.add('hidden');
+                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500";
+                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
             });
+            
             document.getElementById('auth-tab-register').addEventListener('click', () => {
                 document.getElementById('form-register').classList.remove('hidden');
                 document.getElementById('form-login').classList.add('hidden');
+                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500";
+                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
+            });
+
+            // Listener para aplicar a máscara do WhatsApp enquanto o usuário digita
+            const whatsappInput = document.getElementById('register-whatsapp');
+            whatsappInput.addEventListener('input', (e) => {
+                const start = e.target.selectionStart;
+                e.target.value = formatWhatsApp(e.target.value);
             });
 
             // Login
@@ -285,20 +322,47 @@
                 }
             });
 
-            // Cadastro
+            // Cadastro com Confirmação de Senha e Validação do WhatsApp
             document.getElementById('form-register').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('register-name').value;
-                const whatsapp = document.getElementById('register-whatsapp').value;
+                const whatsappRaw = document.getElementById('register-whatsapp').value.replace(/\D/g, "");
                 const email = document.getElementById('register-email').value.trim();
                 const password = document.getElementById('register-password').value;
+                const passwordConfirm = document.getElementById('register-password-confirm').value;
+
+                // Validação do tamanho do WhatsApp (DDD + 9 números)
+                if (whatsappRaw.length !== 11) {
+                    showToast("Digite um número de celular válido com DDD (11 dígitos).", "error");
+                    return;
+                }
+
+                // Validação de correspondência de senhas
+                if (password !== passwordConfirm) {
+                    showToast("As senhas não coincidem. Verifique e tente novamente.", "error");
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showToast("A senha precisa ter no mínimo 6 caracteres.", "error");
+                    return;
+                }
 
                 const { error } = await supabase.auth.signUp({
                     email, password,
-                    options: { data: { full_name: name, whatsapp: whatsapp } }
+                    options: { data: { full_name: name, whatsapp: whatsappRaw } }
                 });
-                if (error) showToast(error.message, "error");
-                else { showToast("Conta criada! Verifique seu e-mail."); checkAuth(); }
+                
+                if (error) {
+                    if (error.message.includes("rate limit")) {
+                        showToast("Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar de novo.", "error");
+                    } else {
+                        showToast(error.message, "error");
+                    }
+                } else { 
+                    showToast("Conta criada! Verifique seu e-mail."); 
+                    checkAuth(); 
+                }
             });
 
             // Logout
