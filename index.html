@@ -19,33 +19,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-6">
 
-    <!-- OVERLAY DE CONFIGURAÇÃO INICIAL -->
-    <div id="setup-overlay" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <div class="text-center">
-                <div class="w-12 h-12 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
-                    <i class="fa-solid fa-gears"></i>
-                </div>
-                <h3 class="font-extrabold text-slate-800 text-lg">Conexão Vida Rica</h3>
-                <p class="text-xs text-slate-500 mt-1">Configure as credenciais do seu Supabase.</p>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Project URL</label>
-                    <input type="text" id="setup-url" placeholder="https://xxxx.supabase.co" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 font-mono">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Anon API Key</label>
-                    <input type="password" id="setup-key" placeholder="eyJhbGciOi..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 font-mono">
-                </div>
-            </div>
-            <button id="btn-save-setup" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md">
-                Salvar e Conectar
-            </button>
-        </div>
-    </div>
-
-    <!-- TELA DO PAYWALL -->
     <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 hidden overflow-y-auto">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
             <div class="text-center space-y-1">
@@ -97,7 +70,6 @@
         </div>
     </div>
 
-    <!-- TELA DE AUTENTICAÇÃO -->
     <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-12 flex flex-col justify-center min-h-screen space-y-6">
         <div class="text-center space-y-2">
             <div class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-pink-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
@@ -148,7 +120,6 @@
         </div>
     </section>
 
-    <!-- ÁREA LOGADA PRINCIPAL -->
     <div id="screen-app" class="screen space-y-4">
         <header class="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md sticky top-0 z-40">
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
@@ -169,7 +140,6 @@
         </header>
 
         <main class="max-w-md w-full mx-auto px-4 py-2 space-y-4">
-            <!-- CARD PERFIL -->
             <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
                 <div>
                     <h2 id="app-user-name" class="font-bold text-base text-slate-800">Carregando...</h2>
@@ -181,7 +151,6 @@
                 </div>
             </div>
 
-            <!-- QUADRO FINANCEIRO RESUMIDO -->
             <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Saldo Consolidado do Grupo</p>
                 <h3 class="text-3xl font-black mt-1">R$ 0,00</h3>
@@ -197,7 +166,6 @@
                 </div>
             </div>
 
-            <!-- MENUS OPERACIONAIS -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-white p-4 rounded-2xl border border-slate-100 text-left space-y-1 shadow-sm">
                     <div class="w-8 h-8 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center mb-1"><i class="fa-solid fa-arrow-right-arrow-left text-xs"></i></div>
@@ -216,8 +184,10 @@
     <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
     <script type="module">
-        let SUPABASE_URL = localStorage.getItem("vr_supa_url") || "";
-        let SUPABASE_KEY = localStorage.getItem("vr_supa_key") || "";
+        // CHAVES DEFINITIVAS EMBUTIDAS NATIVAMENTE NO CÓDIGO DO CLIENTE
+        const SUPABASE_URL = "https://ndgxuhakaqycnmojopae.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ3h1aGFrYXF5Y25tb2pvcGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjA2OTYsImV4cCI6MjA5Nzg5NjY5Nn0.Yv65UnxSeUxTJlB53zu3nD36lOqWT0Kzf7inzza2Rrs";
+        
         let supabase = null;
         let priceMatrix = {};
         let paywallState = { plan_type: 'casal', service_type: 'app' };
@@ -235,18 +205,14 @@
         }
 
         function initSupabase() {
-            if (SUPABASE_URL && SUPABASE_KEY) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                checkAuth();
-            } else {
-                document.getElementById("setup-overlay").classList.remove("hidden");
-            }
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            checkAuth();
         }
 
         async function checkAuth() {
-            const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                const { data: profile, error: profErr } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
                 
                 if (profile) {
                     if (!profile.is_premium && profile.role !== 'admin') {
@@ -259,8 +225,7 @@
                         showScreen("screen-app");
                     }
                 } else {
-                    // Se o profile demorar para sincronizar no trigger
-                    showToast("Sincronizando conta da base de dados...", "success");
+                    showToast("Sincronizando conta com a base de dados...", "success");
                     setTimeout(checkAuth, 1500);
                 }
             } else {
@@ -296,7 +261,6 @@
         window.onload = function () {
             initSupabase();
 
-            // Alternar abas da auth
             document.getElementById('auth-tab-login').addEventListener('click', () => {
                 document.getElementById('form-login').classList.remove('hidden');
                 document.getElementById('form-register').classList.add('hidden');
@@ -341,17 +305,6 @@
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
                 checkAuth();
-            });
-
-            // Configuração manual de chaves se necessário
-            document.getElementById('btn-save-setup').addEventListener('click', () => {
-                const url = document.getElementById('setup-url').value.trim();
-                const key = document.getElementById('setup-key').value.trim();
-                if (url && key) {
-                    localStorage.setItem("vr_supa_url", url);
-                    localStorage.setItem("vr_supa_key", key);
-                    location.reload();
-                }
             });
         };
     </script>
