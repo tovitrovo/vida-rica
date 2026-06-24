@@ -1,0 +1,11 @@
+# Configuração das Edge Functions do Vida Rica.
+# Substitua "project_id" pelo ref do seu projeto Supabase ao usar a CLI.
+project_id = "ndgxuhakaqycnmojopae"
+
+# A criação da assinatura exige usuário autenticado (valida o JWT).
+[functions.mp-create-subscription]
+verify_jwt = true
+
+# O webhook é chamado pelo Mercado Pago (sem JWT). Deve ser público.
+[functions.mp-webhook]
+verify_jwt = false
