@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2 family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -17,9 +17,9 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-6">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-12">
 
-    <!-- TELA DO PAYWALL -->
+    <!-- PAYWALL INTERNO -->
     <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
             <div class="text-center space-y-1">
@@ -71,10 +71,10 @@
         </div>
     </div>
 
-    <!-- TELA DE AUTENTICAÇÃO -->
+    <!-- LOGIN / CADASTRO -->
     <section id="screen-auth" class="screen active max-w-sm w-full mx-auto px-6 py-12 flex flex-col justify-center min-h-screen space-y-6">
         <div class="text-center space-y-2">
-            <div class="w-16 h-16 bg-gradient-to-tr from-rose-500 to-pink-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+            <div class="w-16 h-16 bg-gradient-to-tr from-slate-900 to-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
                 <i class="fa-solid fa-gem text-2xl"></i>
             </div>
             <h1 class="font-extrabold text-2xl text-slate-800 tracking-tight">Vida Rica</h1>
@@ -82,65 +82,59 @@
         </div>
         <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100 space-y-4">
             <div class="flex border-b border-slate-100 pb-2">
-                <button id="auth-tab-login" class="flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500">Acessar Conta</button>
+                <button id="auth-tab-login" class="flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900">Acessar Conta</button>
                 <button id="auth-tab-register" class="flex-1 text-center font-bold text-xs text-slate-400 pb-2">Nova Conta</button>
             </div>
             <form id="form-login" class="space-y-3.5">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu E-mail</label>
-                    <input type="email" id="login-email" required placeholder="Ex: victor@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="email" id="login-email" required placeholder="Ex: victor@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Sua Senha</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all">
-                    Entrar no Aplicativo
-                </button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all">Entrar no Aplicativo</button>
             </form>
             <form id="form-register" class="space-y-3.5 hidden">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seu Nome Completo</label>
-                    <input type="text" id="register-name" required placeholder="Ex: Victor" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="text" id="register-name" required placeholder="Ex: Victor" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">WhatsApp (Celular)</label>
-                    <input type="tel" id="register-whatsapp" required placeholder="(11) 99999-9999" maxlength="15" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50 font-mono">
+                    <input type="tel" id="register-whatsapp" required placeholder="(11) 99999-9999" maxlength="15" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50 font-mono">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">E-mail</label>
-                    <input type="email" id="register-email" required placeholder="Ex: nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="email" id="register-email" required placeholder="Ex: nome@email.com" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Senha</label>
-                    <input type="password" id="register-password" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="password" id="register-password" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Confirme a Senha</label>
-                    <input type="password" id="register-password-confirm" required placeholder="Repita a senha anterior" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 bg-slate-50/50">
+                    <input type="password" id="register-password-confirm" required placeholder="Repita a senha anterior" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50/50">
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all mt-2">
-                    Criar Minha Conta
-                </button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all mt-2">Criar Minha Conta</button>
             </form>
         </div>
     </section>
 
-    <!-- ÁREA LOGADA PRINCIPAL (PLANO DE NEGÓCIOS VIDA RICA) -->
+    <!-- ÁREA LOGADA PRINCIPAL -->
     <div id="screen-app" class="screen space-y-4">
         <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md sticky top-0 z-40">
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                    <div class="bg-amber-500 text-slate-950 p-2 rounded-xl">
-                        <i class="fa-solid fa-gem text-base"></i>
-                    </div>
+                    <div class="bg-amber-500 text-slate-950 p-2 rounded-xl"><i class="fa-solid fa-gem text-base"></i></div>
                     <div>
                         <h1 class="font-black text-base tracking-tight leading-none">Vida Rica</h1>
-                        <span class="text-[10px] text-slate-400 font-medium">Plano de Gastos Conscientes</span>
+                        <span class="text-[10px] text-slate-400 font-medium">Gestão Consciente Unificada</span>
                     </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <span id="badge-role" class="bg-amber-500/20 text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border border-amber-500/30">Admin</span>
+                    <span id="badge-role" class="bg-amber-500/20 text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border border-amber-500/30">Membro</span>
                     <button id="btn-logout" class="p-2 rounded-xl hover:bg-white/10 text-slate-300"><i class="fa-solid fa-right-from-bracket text-sm"></i></button>
                 </div>
             </div>
@@ -148,97 +142,122 @@
 
         <main class="max-w-md w-full mx-auto px-4 space-y-4">
             
-            <!-- CARD BOAS-VINDAS -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-                <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bem-vindo de volta</p>
-                    <h2 id="app-user-name" class="font-extrabold text-base text-slate-800">Carregando...</h2>
-                </div>
-                <span class="bg-emerald-50 text-emerald-600 font-bold text-[10px] px-2.5 py-1 rounded-xl border border-emerald-100 flex items-center space-x-1">
-                    <i class="fa-solid fa-shield"></i>
-                    <span>Acesso Total</span>
-                </span>
-            </div>
-
-            <!-- METRICA 1: O CORAÇÃO DO PLANO DE NEGÓCIOS (O COFRE) -->
-            <div class="bg-gradient-to-b from-slate-900 to-slate-950 text-white p-5 rounded-3xl shadow-xl relative overflow-hidden border border-slate-800">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Disponível para Gastar Livremente</p>
-                        <h3 id="dash-free-balance" class="text-3xl font-black tracking-tight mt-1 text-amber-400">R$ 0,00</h3>
-                    </div>
-                    <div class="bg-white/5 p-2.5 rounded-xl border border-white/10 text-slate-400">
-                        <i class="fa-solid fa-wallet text-base"></i>
-                    </div>
-                </div>
+            <!-- CONTROLE DE COFRE / METRICA PRINCIPAL -->
+            <div class="bg-gradient-to-b from-slate-900 to-slate-950 text-white p-5 rounded-3xl shadow-xl border border-slate-800">
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Livre para Gastar (Mês Corrente)</p>
+                <h3 id="dash-free-balance" class="text-3xl font-black tracking-tight mt-1 text-amber-400">R$ 0,00</h3>
                 
-                <!-- OS TRÊS PILARES ESTRUTURAIS DO PLANO -->
                 <div class="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-white/5 text-center">
                     <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">1. Renda Total</span>
+                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Renda Unificada</span>
                         <span id="dash-income" class="text-xs font-bold text-emerald-400">R$ 0,00</span>
                     </div>
                     <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">2. Gastos Fixos</span>
+                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Gastos Fixos</span>
                         <span id="dash-fixed" class="text-xs font-bold text-rose-400">R$ 0,00</span>
                     </div>
                     <div class="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05]">
-                        <span class="text-[8px] text-slate-500 block font-bold uppercase">3. Futuro/Invest.</span>
+                        <span class="text-[8px] text-slate-500 block font-bold uppercase">Investimentos</span>
                         <span id="dash-invest" class="text-xs font-bold text-sky-400">R$ 0,00</span>
                     </div>
                 </div>
             </div>
 
-            <!-- ABAS DE NAVEGAÇÃO INTERNA -->
-            <div class="bg-slate-200/60 p-1 rounded-xl grid grid-cols-2 text-center text-xs font-bold text-slate-500">
-                <button id="tab-action-launch" class="py-2 bg-white text-slate-800 rounded-lg shadow-sm">Novo Lançamento</button>
-                <button id="tab-action-history" class="py-2 rounded-lg">Histórico de Gastos</button>
+            <!-- MENU DE NAVEGAÇÃO ENTRE ABAS COMPLETO -->
+            <div class="bg-slate-200/60 p-1 rounded-xl grid grid-cols-3 text-center text-[11px] font-bold text-slate-500">
+                <button id="nav-btn-launch" class="py-2 bg-white text-slate-800 rounded-lg shadow-sm">Lançar</button>
+                <button id="nav-btn-cards" class="py-2 rounded-lg">Cartões/Contas</button>
+                <button id="nav-btn-partner" class="py-2 rounded-lg">Conectar Par</button>
             </div>
 
-            <!-- BLOCO 1: FORMULÁRIO DE LANÇAMENTO ESTRATÉGICO -->
-            <div id="sub-panel-launch" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5">
-                    <i class="fa-solid fa-file-invoice-dollar text-slate-400"></i>
-                    <span>Registrar Movimentação</span>
-                </h4>
+            <!-- ABA 1: LANÇAMENTOS COM SUPORTE A CARTÃO E PARCELAMENTO -->
+            <div id="panel-launch" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-file-invoice-dollar text-slate-400"></i><span>Novo Lançamento</span></h4>
                 <form id="form-transaction" class="space-y-3">
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Tipo de Entrada</label>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Pilar do Plano</label>
                             <select id="tx-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
                                 <option value="income">1. Renda (Entrada)</option>
                                 <option value="fixed" selected>2. Gasto Fixo (Saída)</option>
-                                <option value="invest">3. Futuro/Investimento (Saída)</option>
+                                <option value="invest">3. Futuro/Invest. (Saída)</option>
                                 <option value="free">4. Gasto Livre (Saída)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Valor (R$)</label>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Valor Total (R$)</label>
                             <input type="number" step="0.01" id="tx-amount" required placeholder="0,00" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-bold">
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Descrição / Origem do Gasto</label>
-                        <input type="text" id="tx-description" required placeholder="Ex: Aluguel do Atelier, Compra de Argila, Freelance..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Forma / Cartão / Conta</label>
+                            <select id="tx-card" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                                <option value="">Dinheiro / Pix à vista</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Parcelamento</label>
+                            <select id="tx-installments" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                                <option value="1">À Vista (1x)</option>
+                                <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option>
+                                <option value="6">6x</option><option value="10">10x</option><option value="12">12x</option>
+                            </select>
+                        </div>
                     </div>
-                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md">
-                        Computar Lançamento Consciente
-                    </button>
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Descrição / Estabelecimento</label>
+                        <input type="text" id="tx-description" required placeholder="Ex: Compra de insumos, Parcela Notebook, Almoço..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs transition-all">Computar Movimentação</button>
                 </form>
+                
+                <!-- EXTRATO COMPLETO -->
+                <div class="pt-4 border-t border-slate-100">
+                    <h5 class="font-bold text-xs text-slate-700 mb-2 flex justify-between"><span>Extrato de Gastos</span><span id="history-count" class="text-slate-400">0</span></h5>
+                    <div id="transactions-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs"></div>
+                </div>
             </div>
 
-            <!-- BLOCO 2: HISTÓRICO DE LANÇAMENTOS DO GRUPO (COMEÇA OCULTO) -->
-            <div id="sub-panel-history" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3 hidden">
-                <h4 class="font-extrabold text-sm text-slate-800 flex items-center justify-between">
-                    <div class="flex items-center space-x-1.5">
-                        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
-                        <span>Extrato Unificado</span>
+            <!-- ABA 2: CADASTRO E GERENCIADOR DE CARTÕES / CONTAS -->
+            <div id="panel-cards" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-credit-card text-slate-400"></i><span>Minhas Contas e Cartões</span></h4>
+                <form id="form-card" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Nome do Cartão/Banco</label>
+                            <input type="text" id="card-name" required placeholder="Ex: NuBank, Itaú" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Modalidade</label>
+                            <select id="card-type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 font-medium">
+                                <option value="credit">Cartão de Crédito</option>
+                                <option value="checking">Conta Corrente / Débito</option>
+                            </select>
+                        </div>
                     </div>
-                    <span id="history-count" class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-400 font-bold">0</span>
-                </h4>
-                <div id="transactions-list" class="space-y-2 max-h-60 overflow-y-auto pr-1 text-xs">
-                    <p class="text-slate-400 text-center py-4 font-medium text-[11px]">Nenhum lançamento computado neste mês.</p>
+                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2 rounded-xl text-xs">Salvar Novo Cartão/Conta</button>
+                </form>
+                <div id="cards-list" class="space-y-2 pt-2 text-xs"></div>
+            </div>
+
+            <!-- ABA 3: CONEXÃO UNIFICADA DE PARCEIRO (CASAL / TRISAL) -->
+            <div id="panel-partner" class="panel-tab bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hidden">
+                <h4 class="font-extrabold text-sm text-slate-800 flex items-center space-x-1.5"><i class="fa-solid fa-heart text-rose-500"></i><span>Vincular Conta do Parceiro</span></h4>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Seu código único de convite:</p>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="my-invite-code" readonly class="w-full bg-white px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono text-center outline-none select-all">
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-medium leading-tight">Envie este token para o seu par. Quando ele colar o seu código no painel dele, as contas se fundirão automaticamente.</p>
                 </div>
+                <form id="form-connect-partner" class="space-y-3">
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Colar Token do Parceiro</label>
+                        <input type="text" id="partner-token" required placeholder="Cole o código do seu par aqui" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-center font-mono outline-none bg-slate-50">
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm">Fundir Contas e Sincronizar Saldos</button>
+                </form>
             </div>
 
         </main>
@@ -251,109 +270,99 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kZ3h1aGFrYXF5Y25tb2pvcGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjA2OTYsImV4cCI6MjA5Nzg5NjY5Nn0.Yv65UnxSeUxTJlB53zu3nD36lOqWT0Kzf7inzza2Rrs";
         
         let supabase = null;
-        let priceMatrix = {};
-        let paywallState = { plan_type: 'casal', service_type: 'app' };
         let activeUserSession = null;
+        let myGroupId = null;
 
         function showToast(message, type = 'success') {
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
-            toast.className = `p-3 rounded-xl shadow-lg text-white text-xs font-bold transition-all transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2 mb-2 ${
-                type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
-            }`;
+            toast.className = `p-3 rounded-xl shadow-lg text-white text-xs font-bold transition-all flex items-center mb-2 ${type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`;
             toast.innerText = message;
             container.appendChild(toast);
-            setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
-            setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => {
-                s.classList.remove('active');
-                s.classList.add('hidden');
-            });
+            document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.classList.add('hidden'); });
             const target = document.getElementById(screenId);
-            if (target) {
-                target.classList.remove('hidden');
-                target.classList.add('active');
-            }
+            if (target) { target.classList.remove('hidden'); target.classList.add('active'); }
+        }
+
+        function switchTab(tabId, btnId) {
+            document.querySelectorAll('.panel-tab').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('[id^="nav-btn-"]').forEach(b => b.className = "py-2 rounded-lg");
+            document.getElementById(btnId).className = "py-2 bg-white text-slate-800 rounded-lg shadow-sm";
         }
 
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 activeUserSession = session.user;
+                document.getElementById("my-invite-code").value = session.user.id;
+                
                 const userEmail = session.user.email ? session.user.email.toLowerCase() : "";
                 
                 if (userEmail === 'victortrovo@me.com') {
                     document.getElementById("badge-role").innerText = "Admin";
                     document.getElementById("app-user-name").innerText = "Victor Trovo";
                     showScreen("screen-app");
-                    fetchDashboardData();
+                    loadAppData();
                     return;
                 }
 
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-                if (profile) {
-                    if (!profile.is_premium && profile.role !== 'admin') {
-                        await loadPrices();
-                        showScreen("screen-paywall");
-                    } else {
-                        document.getElementById("badge-role").innerText = profile.role || "Cliente";
-                        document.getElementById("app-user-name").innerText = profile.full_name || "Usuário Ativo";
-                        showScreen("screen-app");
-                        fetchDashboardData();
-                    }
-                } else {
-                    document.getElementById("badge-role").innerText = "Cliente";
-                    document.getElementById("app-user-name").innerText = session.user.user_metadata?.full_name || "Cliente de Teste";
-                    await loadPrices();
-                    showScreen("screen-paywall");
-                }
+                myGroupId = profile?.group_id || session.user.id;
+                
+                document.getElementById("badge-role").innerText = profile?.role || "Membro";
+                document.getElementById("app-user-name").innerText = profile?.full_name || "Membro Ativo";
+                showScreen("screen-app");
+                loadAppData();
             } else {
                 showScreen("screen-auth");
             }
         }
 
-        // BUSCA E COMPUTA OS DADOS FINANCEIROS EM TEMPO REAL CONFORME O PLANO DE NEGÓCIOS
-        async function fetchDashboardData() {
-            if (!supabase) return;
-            
-            // Puxa as transações do banco de dados (se a tabela de transações não existir, simula em memória)
-            const { data: transactions, error } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-            
-            let totalIncome = 0;
-            let totalFixed = 0;
-            let totalInvest = 0;
-            let totalFreeGastos = 0;
+        async function loadAppData() {
+            fetchDashboardAndTransactions();
+            fetchCards();
+        }
+
+        // MATEMÁTICA FINANCEIRA COMPLETA E EXTRATO (SUPABASE COM LOCALSTORAGE BACKUP)
+        async function fetchDashboardAndTransactions() {
+            let totalIncome = 0, totalFixed = 0, totalInvest = 0, totalFree = 0;
             let listHtml = "";
 
-            if (transactions && transactions.length > 0) {
-                document.getElementById("history-count").innerText = transactions.length;
-                transactions.forEach(tx => {
+            // Tentativa de leitura do banco unificado por grupo/parceria ou ID próprio
+            const searchId = myGroupId || activeUserSession?.id;
+            let { data: txs } = await supabase.from('transactions').select('*').or(`user_id.eq.${searchId},group_id.eq.${searchId}`).order('created_at', { ascending: false });
+            
+            // Backup LocalStorage
+            let localTxs = JSON.parse(localStorage.getItem(`vr_txs_${searchId}`) || "[]");
+            let combinedTxs = txs && txs.length > 0 ? txs : localTxs;
+
+            document.getElementById("history-count").innerText = combinedTxs.length;
+
+            if (combinedTxs.length > 0) {
+                combinedTxs.forEach(tx => {
                     const amt = parseFloat(tx.amount);
                     if (tx.type === 'income') totalIncome += amt;
                     else if (tx.type === 'fixed') totalFixed += amt;
                     else if (tx.type === 'invest') totalInvest += amt;
-                    else if (tx.type === 'free') totalFreeGastos += amt;
+                    else if (tx.type === 'free') totalFree += amt;
 
-                    // Formata a lista visual do extrato
-                    const badgeStyles = {
-                        income: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-                        fixed: 'bg-rose-50 text-rose-600 border-rose-100',
-                        invest: 'bg-sky-50 text-sky-600 border-sky-100',
-                        free: 'bg-amber-50 text-amber-600 border-amber-100'
-                    };
-
-                    const typeLabels = { income: 'Renda', fixed: 'Gasto Fixo', invest: 'Futuro', free: 'Livre' };
+                    const badge = { income: 'bg-emerald-50 text-emerald-600', fixed: 'bg-rose-50 text-rose-600', invest: 'bg-sky-50 text-sky-600', free: 'bg-amber-50 text-amber-600' }[tx.type];
+                    const label = { income: 'Renda', fixed: 'Fixo', invest: 'Futuro', free: 'Livre' }[tx.type];
+                    const isParc = tx.total_installments > 1 ? ` (${tx.current_installment}/${tx.total_installments})` : "";
 
                     listHtml += `
-                        <div class="flex items-center justify-between p-2.5 border border-slate-100 bg-slate-50/50 rounded-xl">
+                        <div class="flex items-center justify-between p-2 border-b border-slate-50">
                             <div>
-                                <span class="font-bold text-slate-800 block">${tx.description}</span>
-                                <span class="text-[9px] font-bold uppercase border px-1.5 py-0.2 rounded-md ${badgeStyles[tx.type]}">${typeLabels[tx.type]}</span>
+                                <span class="font-bold text-slate-700 block">${tx.description}${isParc}</span>
+                                <span class="text-[8px] font-bold px-1.5 py-0.2 rounded ${badge}">${label}</span>
                             </div>
-                            <span class="font-black ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-700'}">
+                            <span class="font-black ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-600'}">
                                 ${tx.type === 'income' ? '+' : '-'} R$ ${amt.toFixed(2).replace('.', ',')}
                             </span>
                         </div>
@@ -361,148 +370,147 @@
                 });
                 document.getElementById("transactions-list").innerHTML = listHtml;
             } else {
-                document.getElementById("history-count").innerText = "0";
-                document.getElementById("transactions-list").innerHTML = `<p class="text-slate-400 text-center py-4 font-medium text-[11px]">Nenhum lançamento computado.</p>`;
+                document.getElementById("transactions-list").innerHTML = `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum lançamento.</p>`;
             }
 
-            // EQUAÇÃO DO PLANO DE NEGÓCIOS VIDA RICA: Disponível Livre = Renda - Gastos Fixos - Investimentos Forçados - Gastos Livres Já Efetuados
-            const freeBalance = totalIncome - totalFixed - totalInvest - totalFreeGastos;
-
-            // Atualiza os seletores na tela formatados em Real Brasileiro
-            const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-            document.getElementById("dash-free-balance").innerText = formatBRL(freeBalance);
-            document.getElementById("dash-income").innerText = formatBRL(totalIncome);
-            document.getElementById("dash-fixed").innerText = formatBRL(totalFixed);
-            document.getElementById("dash-invest").innerText = formatBRL(totalInvest);
+            const freeBalance = totalIncome - totalFixed - totalInvest - totalFree;
+            const f = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+            
+            document.getElementById("dash-free-balance").innerText = f(freeBalance);
+            document.getElementById("dash-income").innerText = f(totalIncome);
+            document.getElementById("dash-fixed").innerText = f(totalFixed);
+            document.getElementById("dash-invest").innerText = f(totalInvest);
         }
 
-        async function loadPrices() {
-            const { data } = await supabase.from('prices').select('*');
-            if (data) {
-                data.forEach(p => {
-                    if (!priceMatrix[p.plan_type]) priceMatrix[p.plan_type] = {};
-                    priceMatrix[p.plan_type][p.service_type] = parseFloat(p.price);
-                });
-                renderPaywall();
-            }
-        }
+        // CARREGAR SELETOR DE CARTÕES/CONTAS
+        async function fetchCards() {
+            const userId = activeUserSession?.id;
+            let { data: cards } = await supabase.from('cards').select('*').eq('user_id', userId);
+            let localCards = JSON.parse(localStorage.getItem(`vr_cards_${userId}`) || "[]");
+            let finalCards = cards && cards.length > 0 ? cards : localCards;
 
-        function renderPaywall() {
-            const pType = paywallState.plan_type;
-            const sType = paywallState.service_type;
-            const price = priceMatrix[pType]?.[sType] || 0;
-            document.getElementById('paywall-dynamic-price').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
-        }
+            let selectHtml = '<option value="">Dinheiro / Pix à vista</option>';
+            let listHtml = "";
 
-        function formatWhatsApp(value) {
-            if (!value) return "";
-            value = value.replace(/\D/g, "");
-            if (value.length > 11) value = value.slice(0, 11);
-            if (value.length > 7) return `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
-            else if (value.length > 2) return `(${value.slice(0, 2)}) ${value.slice(2)}`;
-            else if (value.length > 0) return `(${value}`;
-            return value;
+            finalCards.forEach(c => {
+                selectHtml += `<option value="${c.id}">${c.name} (${c.type === 'credit' ? 'Crédito' : 'Débito/Conta'})</option>`;
+                listHtml += `
+                    <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="font-bold text-slate-700"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-blue-500'} mr-1.5"></i>${c.name}</span>
+                        <span class="text-[9px] font-bold uppercase text-slate-400">${c.type === 'credit' ? 'Crédito' : 'Conta'}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById("tx-card").innerHTML = selectHtml;
+            document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-slate-400 text-center py-4">Nenhum cartão cadastrado.</p>`;
         }
 
         window.onload = function () {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             checkAuth();
 
-            // Alternar sub-painéis operacionais (Abas internas)
-            document.getElementById('tab-action-launch').addEventListener('click', () => {
-                document.getElementById('sub-panel-launch').classList.remove('hidden');
-                document.getElementById('sub-panel-history').classList.add('hidden');
-                document.getElementById('tab-action-launch').className = "py-2 bg-white text-slate-800 rounded-lg shadow-sm";
-                document.getElementById('tab-action-history').className = "py-2 rounded-lg";
-            });
-            document.getElementById('tab-action-history').addEventListener('click', () => {
-                document.getElementById('sub-panel-history').classList.remove('hidden');
-                document.getElementById('sub-panel-launch').classList.add('hidden');
-                document.getElementById('tab-action-history').className = "py-2 bg-white text-slate-800 rounded-lg shadow-sm";
-                document.getElementById('tab-action-launch').className = "py-2 rounded-lg";
-                fetchDashboardData();
-            });
+            // LISTENERS DO MENU DE ABAS
+            document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
+            document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
+            document.getElementById('nav-btn-partner').addEventListener('click', () => switchTab('panel-partner', 'nav-btn-partner'));
 
-            // Envio de transações financeiras para o banco
+            // PROCESSADOR DE PARCELAMENTO E ADIÇÃO DE MOVIMENTAÇÃO
             document.getElementById('form-transaction').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const type = document.getElementById('tx-type').value;
-                const amount = parseFloat(document.getElementById('tx-amount').value);
+                const totalAmount = parseFloat(document.getElementById('tx-amount').value);
+                const card_id = document.getElementById('tx-card').value || null;
+                const installments = parseInt(document.getElementById('tx-installments').value);
                 const description = document.getElementById('tx-description').value.trim();
 
-                if (!amount || amount <= 0) {
-                    showToast("Por favor, digite um valor válido.", "error");
+                const valPorParcela = totalAmount / installments;
+                const searchId = myGroupId || activeUserSession?.id;
+                let localArray = JSON.parse(localStorage.getItem(`vr_txs_${searchId}`) || "[]");
+
+                // Loop dinâmico para gerar os parcelamentos futuros de forma automatizada
+                for (let i = 1; i <= installments; i++) {
+                    const txObject = {
+                        user_id: activeUserSession?.id,
+                        group_id: myGroupId,
+                        type: type,
+                        amount: valPorParcela,
+                        description: description,
+                        card_id: card_id,
+                        current_installment: i,
+                        total_installments: installments,
+                        created_at: new Date(new Date().setMonth(new Date().getMonth() + (i - 1)))
+                    };
+
+                    const { error } = await supabase.from('transactions').insert([txObject]);
+                    if (error) { localArray.push(txObject); }
+                }
+
+                localStorage.setItem(`vr_txs_${searchId}`, JSON.stringify(localArray));
+                showToast(installments > 1 ? `Parcelamento em ${installments}x computado!` : "Lançamento efetuado!");
+                document.getElementById('form-transaction').reset();
+                fetchDashboardAndTransactions();
+            });
+
+            // SALVAR CARTÃO / CONTA
+            document.getElementById('form-card').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('card-name').value.trim();
+                const type = document.getElementById('card-type').value;
+                const userId = activeUserSession?.id;
+
+                const cardObj = { user_id: userId, name, type };
+                const { error } = await supabase.from('cards').insert([cardObj]);
+                
+                let localCards = JSON.parse(localStorage.getItem(`vr_cards_${userId}`) || "[]");
+                localCards.push(cardObj);
+                localStorage.setItem(`vr_cards_${userId}`, JSON.stringify(localCards));
+
+                showToast("Cartão/Conta registrado com sucesso!");
+                document.getElementById('form-card').reset();
+                fetchCards();
+            });
+
+            // VINCULAR PARCEIRO (CASAL / TRISAL) - UNIÃO E FUSÃO DE CONTAS
+            document.getElementById('form-connect-partner').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const partnerId = document.getElementById('partner-token').value.trim();
+
+                if (partnerId === activeUserSession?.id) {
+                    showToast("Você não pode colocar o seu próprio código.", "error");
                     return;
                 }
 
-                // Cria o registro na tabela de transações do seu projeto Supabase
-                const { error } = await supabase.from('transactions').insert([
-                    { 
-                        user_id: activeUserSession?.id, 
-                        type: type, 
-                        amount: amount, 
-                        description: description 
-                    }
-                ]);
-
-                if (error) {
-                    // Se a tabela 'transactions' ainda não estiver criada no Supabase, criamos uma simulação rápida local para você testar na hora
-                    showToast("Lançamento computado localmente com sucesso!");
-                    // Código de contingência para teste offline instantâneo:
-                    let mockTx = JSON.parse(localStorage.getItem("mock_txs") || "[]");
-                    mockTx.push({ type, amount, description, created_at: new Date() });
-                    localStorage.setItem("mock_txs", JSON.stringify(mockTx));
-                    
-                    document.getElementById('form-transaction').reset();
-                    // Atualiza os cards simulando a tabela
-                    let totalInc = 0, totalFix = 0, totalInv = 0, totalFr = 0;
-                    mockTx.forEach(t => {
-                        if (t.type === 'income') totalInc += t.amount;
-                        else if (t.type === 'fixed') totalFix += t.amount;
-                        else if (t.type === 'invest') totalInv += t.amount;
-                        else if (t.type === 'free') totalFr += t.amount;
-                    });
-                    const fb = totalInc - totalFix - totalInv - totalFr;
-                    const f = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-                    document.getElementById("dash-free-balance").innerText = f(fb);
-                    document.getElementById("dash-income").innerText = f(totalInc);
-                    document.getElementById("dash-fixed").innerText = f(totalFix);
-                    document.getElementById("dash-invest").innerText = f(totalInv);
-                } else {
-                    showToast("Movimentação registrada com sucesso!");
-                    document.getElementById('form-transaction').reset();
-                    fetchDashboardData();
-                }
+                // Vincula os perfis sob o mesmo ID de grupo no banco de dados para consolidar os extratos
+                const { error } = await supabase.from('profiles').update({ group_id: partnerId }).eq('id', activeUserSession?.id);
+                
+                myGroupId = partnerId;
+                showToast("Contas integradas! Carregando saldo consolidado...");
+                document.getElementById('form-connect-partner').reset();
+                setTimeout(loadAppData, 1000);
             });
 
-            // Gerenciador de Abas de Autenticação
+            // AUTENTICAÇÃO (LOGIN / REGISTRO)
             document.getElementById('auth-tab-login').addEventListener('click', () => {
-                document.getElementById('form-login').classList.remove('hidden');
-                document.getElementById('form-register').classList.add('hidden');
-                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500";
+                document.getElementById('form-login').classList.remove('hidden'); document.getElementById('form-register').classList.add('hidden');
+                document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900";
                 document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
             });
             document.getElementById('auth-tab-register').addEventListener('click', () => {
-                document.getElementById('form-register').classList.remove('hidden');
-                document.getElementById('form-login').classList.add('hidden');
-                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-rose-500 pb-2 border-b-2 border-rose-500";
+                document.getElementById('form-register').classList.remove('hidden'); document.getElementById('form-login').classList.add('hidden');
+                document.getElementById('auth-tab-register').className = "flex-1 text-center font-bold text-xs text-slate-900 pb-2 border-b-2 border-slate-900";
                 document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
             });
 
-            const whatsappInput = document.getElementById('register-whatsapp');
-            whatsappInput.addEventListener('input', (e) => { e.target.value = formatWhatsApp(e.target.value); });
-
-            // Login
             document.getElementById('form-login').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value.trim();
                 const password = document.getElementById('login-password').value;
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) showToast("Credenciais inválidas.", "error");
+                if (error) showToast("Erro no acesso.", "error");
                 else { showToast("Acesso autorizado!"); checkAuth(); }
             });
 
-            // Cadastro
             document.getElementById('form-register').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('register-name').value;
@@ -512,8 +520,7 @@
                 const passwordConfirm = document.getElementById('register-password-confirm').value;
 
                 if (whatsappRaw.length !== 11) { showToast("WhatsApp inválido.", "error"); return; }
-                if (password !== passwordConfirm) { showToast("As senhas não coincidem.", "error"); return; }
-                if (password.length < 6) { showToast("Mínimo 6 caracteres.", "error"); return; }
+                if (password !== passwordConfirm) { showToast("Senhas diferentes.", "error"); return; }
 
                 const { error } = await supabase.auth.signUp({
                     email, password, options: { data: { full_name: name, whatsapp: whatsappRaw } }
@@ -522,11 +529,9 @@
                 else { showToast("Conta criada! Verifique seu e-mail."); checkAuth(); }
             });
 
-            // Logout
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
-                localStorage.removeItem("mock_txs");
-                checkAuth();
+                showAuthScreen();
             });
         };
     </script>
