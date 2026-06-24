@@ -267,6 +267,55 @@ create table if not exists public.wish_contributions (
     created_at timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------------------------
+-- 11.1. AUTOCORREÇÃO DE SCHEMA DAS NOVAS TABELAS (idempotência)
+--       Se alguma destas tabelas já existia de uma versão anterior com schema
+--       diferente, os CREATE acima foram ignorados. Garantimos aqui que TODAS
+--       as colunas existam ANTES de qualquer índice ou política referenciá-las.
+-- ----------------------------------------------------------------------------
+alter table public.plan_prices add column if not exists account_type    text;
+alter table public.plan_prices add column if not exists with_mentorship boolean not null default false;
+alter table public.plan_prices add column if not exists amount          numeric(14, 2) not null default 0;
+alter table public.plan_prices add column if not exists updated_at      timestamptz not null default now();
+
+alter table public.subscriptions add column if not exists user_id            uuid references auth.users (id) on delete cascade;
+alter table public.subscriptions add column if not exists group_id           uuid;
+alter table public.subscriptions add column if not exists account_type       text not null default 'individual';
+alter table public.subscriptions add column if not exists with_mentorship    boolean not null default false;
+alter table public.subscriptions add column if not exists status             text not null default 'pending';
+alter table public.subscriptions add column if not exists amount             numeric(14, 2) not null default 0;
+alter table public.subscriptions add column if not exists mp_preapproval_id  text;
+alter table public.subscriptions add column if not exists current_period_end timestamptz;
+alter table public.subscriptions add column if not exists created_at         timestamptz not null default now();
+alter table public.subscriptions add column if not exists updated_at         timestamptz not null default now();
+
+alter table public.mentorship_slots add column if not exists admin_id     uuid references auth.users (id) on delete cascade;
+alter table public.mentorship_slots add column if not exists starts_at    timestamptz;
+alter table public.mentorship_slots add column if not exists duration_min int not null default 60;
+alter table public.mentorship_slots add column if not exists is_booked    boolean not null default false;
+alter table public.mentorship_slots add column if not exists created_at   timestamptz not null default now();
+
+alter table public.mentorship_bookings add column if not exists slot_id      uuid references public.mentorship_slots (id) on delete cascade;
+alter table public.mentorship_bookings add column if not exists user_id      uuid references auth.users (id) on delete cascade;
+alter table public.mentorship_bookings add column if not exists group_id     uuid;
+alter table public.mentorship_bookings add column if not exists scheduled_at timestamptz;
+alter table public.mentorship_bookings add column if not exists status       text not null default 'booked';
+alter table public.mentorship_bookings add column if not exists created_at   timestamptz not null default now();
+
+alter table public.wishes add column if not exists owner_id    uuid references auth.users (id) on delete cascade;
+alter table public.wishes add column if not exists group_id    uuid;
+alter table public.wishes add column if not exists title       text;
+alter table public.wishes add column if not exists amount      numeric(14, 2) not null default 0;
+alter table public.wishes add column if not exists scope       text not null default 'personal';
+alter table public.wishes add column if not exists status      text not null default 'open';
+alter table public.wishes add column if not exists target_date date;
+alter table public.wishes add column if not exists created_at  timestamptz not null default now();
+
+alter table public.wish_contributions add column if not exists wish_id    uuid references public.wishes (id) on delete cascade;
+alter table public.wish_contributions add column if not exists user_id    uuid references auth.users (id) on delete cascade;
+alter table public.wish_contributions add column if not exists amount     numeric(14, 2) not null default 0;
+alter table public.wish_contributions add column if not exists created_at timestamptz not null default now();
+
 -- Índices de apoio
 create index if not exists idx_subscriptions_user_id       on public.subscriptions (user_id);
 create index if not exists idx_subscriptions_group_id      on public.subscriptions (group_id);
