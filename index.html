@@ -200,6 +200,7 @@
         let supabase = null;
         let priceMatrix = {};
         let paywallState = { plan_type: 'casal', service_type: 'app' };
+        let isCheckingAuth = false; // TRAVA CONTRA LOOP DE INTEGRAÇÃO
 
         function showToast(message, type = 'success') {
             const container = document.getElementById("toast-container");
@@ -219,25 +220,40 @@
         }
 
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-                
-                if (profile) {
-                    if (!profile.is_premium && profile.role !== 'admin') {
-                        await loadPrices();
-                        showScreen("screen-paywall");
-                    } else {
-                        document.getElementById("badge-role").innerText = profile.role;
-                        document.getElementById("app-user-name").innerText = profile.full_name || "Usuário Ativo";
-                        document.getElementById("app-user-email").innerText = profile.email;
-                        showScreen("screen-app");
-                    }
+            if (isCheckingAuth) return;
+            isCheckingAuth = true;
+
+            const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+            
+            if (sessionErr || !session) {
+                isCheckingAuth = false;
+                showScreen("screen-auth");
+                return;
+            }
+
+            // Busca única do perfil para evitar requisições infinitas em background
+            const { data: profile, error: profErr } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle();
+            
+            isCheckingAuth = false;
+
+            if (profile) {
+                if (!profile.is_premium && profile.role !== 'admin') {
+                    await loadPrices();
+                    showScreen("screen-paywall");
                 } else {
-                    showToast("Sincronizando conta com a base de dados...", "success");
-                    setTimeout(checkAuth, 1500);
+                    document.getElementById("badge-role").innerText = profile.role;
+                    document.getElementById("app-user-name").innerText = profile.full_name || "Usuário Ativo";
+                    document.getElementById("app-user-email").innerText = profile.email;
+                    showScreen("screen-app");
                 }
             } else {
+                // Se o perfil realmente não for encontrado, ele desloga para limpar o estado travado
+                showToast("Erro: Perfil de usuário não encontrado na tabela 'profiles'. Deslogando...", "error");
+                await supabase.auth.signOut();
                 showScreen("screen-auth");
             }
         }
@@ -267,12 +283,10 @@
             document.getElementById('paywall-dynamic-price').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
         }
 
-        // MÁSCARA EM TEMPO REAL PARA CELULAR / WHATSAPP
         function formatWhatsApp(value) {
             if (!value) return "";
             value = value.replace(/\D/g, "");
             if (value.length > 11) value = value.slice(0, 11);
-            
             if (value.length > 7) {
                 return `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
             } else if (value.length > 2) {
@@ -300,10 +314,8 @@
                 document.getElementById('auth-tab-login').className = "flex-1 text-center font-bold text-xs text-slate-400 pb-2";
             });
 
-            // Listener para aplicar a máscara do WhatsApp enquanto o usuário digita
             const whatsappInput = document.getElementById('register-whatsapp');
             whatsappInput.addEventListener('input', (e) => {
-                const start = e.target.selectionStart;
                 e.target.value = formatWhatsApp(e.target.value);
             });
 
@@ -322,7 +334,7 @@
                 }
             });
 
-            // Cadastro com Confirmação de Senha e Validação do WhatsApp
+            // Cadastro
             document.getElementById('form-register').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('register-name').value;
@@ -331,20 +343,13 @@
                 const password = document.getElementById('register-password').value;
                 const passwordConfirm = document.getElementById('register-password-confirm').value;
 
-                // Validação do tamanho do WhatsApp (DDD + 9 números)
                 if (whatsappRaw.length !== 11) {
                     showToast("Digite um número de celular válido com DDD (11 dígitos).", "error");
                     return;
                 }
 
-                // Validação de correspondência de senhas
                 if (password !== passwordConfirm) {
-                    showToast("As senhas não coincidem. Verifique e tente novamente.", "error");
-                    return;
-                }
-
-                if (password.length < 6) {
-                    showToast("A senha precisa ter no mínimo 6 caracteres.", "error");
+                    showToast("As senhas não coincidem.", "error");
                     return;
                 }
 
@@ -354,21 +359,16 @@
                 });
                 
                 if (error) {
-                    if (error.message.includes("rate limit")) {
-                        showToast("Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar de novo.", "error");
-                    } else {
-                        showToast(error.message, "error");
-                    }
+                    showToast(error.message, "error");
                 } else { 
                     showToast("Conta criada! Verifique seu e-mail."); 
-                    checkAuth(); 
                 }
             });
 
             // Logout
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
-                checkAuth();
+                showScreen("screen-auth");
             });
         };
     </script>
