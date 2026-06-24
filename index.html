@@ -12,15 +12,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .screen { display: none; }
-        .screen.active { display: block; animation: fadeIn 0.25s ease-out; }
+        .screen { display: none !important; }
+        .screen.active { display: block !important; animation: fadeIn 0.25s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col pb-6">
 
     <!-- TELA DO PAYWALL -->
-    <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div id="screen-paywall" class="screen fixed inset-0 bg-slate-900 z-40 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl my-8">
             <div class="text-center space-y-1">
                 <div class="w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
@@ -213,15 +213,21 @@
             setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
-        function initSupabase() {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            checkAuth();
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('active');
+                s.classList.add('hidden');
+            });
+            const target = document.getElementById(screenId);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('active');
+            }
         }
 
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                // Seu e-mail principal ganha acesso administrativo direto no front-end para evitar loops estruturais do banco
                 const userEmail = session.user.email ? session.user.email.toLowerCase() : "";
                 if (userEmail === 'victortrovo@me.com') {
                     document.getElementById("badge-role").innerText = "Admin";
@@ -231,8 +237,7 @@
                     return;
                 }
 
-                // Busca o perfil para outros usuários e clientes de teste
-                const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
                 
                 if (profile) {
                     if (!profile.is_premium && profile.role !== 'admin') {
@@ -245,7 +250,6 @@
                         showScreen("screen-app");
                     }
                 } else {
-                    // Se a tabela falhar ou o registro estiver incompleto, usamos os metadados seguros da própria sessão ativa
                     const fallbackName = session.user.user_metadata?.full_name || "Cliente de Teste";
                     document.getElementById("badge-role").innerText = "Cliente";
                     document.getElementById("app-user-name").innerText = fallbackName;
@@ -256,13 +260,6 @@
             } else {
                 showScreen("screen-auth");
             }
-        }
-
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            const target = document.getElementById(screenId);
-            target.classList.remove('hidden');
-            target.classList.add('active');
         }
 
         async function loadPrices() {
@@ -298,8 +295,10 @@
             return value;
         }
 
+        // DISPARA O FLUXO NATIVO APENAS COM A JANELA E O DOM PRONTOS
         window.onload = function () {
-            initSupabase();
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            checkAuth();
 
             document.getElementById('auth-tab-login').addEventListener('click', () => {
                 document.getElementById('form-login').classList.remove('hidden');
