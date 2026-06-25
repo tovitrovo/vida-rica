@@ -170,6 +170,40 @@ create policy "profiles_select_admin" on public.profiles
     for select using (public.is_admin());
 
 -- ============================================================================
+-- 4.2. PROTEÇÃO: impedir exclusão de cartão/conta com lançamentos vinculados
+--      O front-end mostra o aviso antes, e este trigger garante a regra no banco.
+-- ============================================================================
+create or replace function public.prevent_card_delete_with_transactions()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if old.user_id <> auth.uid() and not public.is_admin() then
+        raise exception 'Sem permissão para apagar este cartão ou conta.';
+    end if;
+
+    if exists (
+        select 1
+        from public.transactions t
+        where t.card_id = old.id
+    ) then
+        raise exception 'Não é possível apagar este cartão ou conta porque existem lançamentos vinculados.';
+    end if;
+
+    return old;
+end;
+$$;
+
+drop trigger if exists prevent_card_delete_with_transactions on public.cards;
+create trigger prevent_card_delete_with_transactions
+    before delete on public.cards
+    for each row execute function public.prevent_card_delete_with_transactions();
+
+revoke execute on function public.prevent_card_delete_with_transactions() from public, anon, authenticated;
+
+-- ============================================================================
 -- 6. TABELA: public.plan_prices
 --    Matriz de preços (configurável pelo admin). 6 combinações de plano.
 -- ============================================================================
