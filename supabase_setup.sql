@@ -807,6 +807,11 @@ end $$;
 --       Removemos a constraint para que create_wish() funcione corretamente.
 alter table public.wishes drop constraint if exists wishes_group_id_fkey;
 
+-- 15.3. profiles: banco antigo pode ter FK profiles_group_id_fkey que impede
+--       apontar group_id para um usuário sem assinatura (ex: admin).
+--       group_id é apenas uuid livre, sem FK forçada.
+alter table public.profiles drop constraint if exists profiles_group_id_fkey;
+
 -- ============================================================================
 -- FIM DO SCRIPT
 -- ============================================================================
