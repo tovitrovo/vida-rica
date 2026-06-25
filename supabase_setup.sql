@@ -816,7 +816,11 @@ alter table public.transactions
     add constraint transactions_type_check
     check (type in ('income', 'fixed', 'invest', 'free'));
 
--- 15.3. wishes: banco antigo pode ter FK wishes_group_id_fkey que não existe
+-- 15.3. transactions: banco antigo pode ter FK transactions_group_id_fkey que
+--       não existe no schema atual (group_id é uuid livre, sem referência).
+alter table public.transactions drop constraint if exists transactions_group_id_fkey;
+
+-- 15.4. wishes: banco antigo pode ter FK wishes_group_id_fkey que não existe
 --       mais no schema atual (group_id é apenas uuid NOT NULL, sem FK externa).
 --       Removemos a constraint para que create_wish() funcione corretamente.
 alter table public.wishes drop constraint if exists wishes_group_id_fkey;
