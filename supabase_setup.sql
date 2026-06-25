@@ -97,10 +97,58 @@ alter table public.profiles     enable row level security;
 alter table public.cards        enable row level security;
 alter table public.transactions enable row level security;
 
+-- ============================================================================
+-- HELPER: public.my_group_id()
+--   Retorna o group_id do perfil de quem está chamando.
+--   É SECURITY DEFINER de propósito: assim LÊ a tabela profiles SEM acionar a
+--   RLS de profiles. Isso elimina a recursão infinita
+--   ("infinite recursion detected in policy for relation profiles"), que ocorre
+--   quando uma política de profiles precisa consultar a própria profiles.
+--   Definida cedo porque é usada nas políticas de grupo logo abaixo.
+-- ============================================================================
+create or replace function public.my_group_id()
+returns uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+    select group_id from public.profiles where id = auth.uid();
+$$;
+revoke execute on function public.my_group_id() from public, anon;
+grant execute on function public.my_group_id() to authenticated;
+
 -- ---------- POLÍTICAS: profiles ----------
+-- Limpeza defensiva: remove TODAS as políticas existentes de profiles antes de
+-- recriá-las. Garante que qualquer política antiga/divergente já presente no
+-- banco de produção (inclusive uma que consultava a própria profiles e causava
+-- a recursão infinita) seja eliminada, qualquer que seja o nome com que foi
+-- criada.
+do $$
+declare pol record;
+begin
+    for pol in
+        select policyname from pg_policies
+        where schemaname = 'public' and tablename = 'profiles'
+    loop
+        execute format('drop policy if exists %I on public.profiles', pol.policyname);
+    end loop;
+end $$;
+
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
     for select using (auth.uid() = id);
+
+-- Membros do mesmo grupo (parceria) enxergam o perfil um do outro.
+-- Usa my_group_id() (SECURITY DEFINER) — NUNCA consulta profiles diretamente
+-- dentro da política, evitando a recursão.
+drop policy if exists "profiles_select_group" on public.profiles;
+create policy "profiles_select_group" on public.profiles
+    for select using (
+        id = public.my_group_id()           -- o dono do grupo
+        or group_id = public.my_group_id()  -- os demais membros do grupo
+        or group_id = auth.uid()            -- membros do grupo do qual sou dono
+    );
 
 drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
@@ -132,7 +180,7 @@ create policy "transactions_select_group" on public.transactions
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.my_group_id()
     );
 
 -- Inserção: só posso lançar movimentações em meu próprio nome.
@@ -430,7 +478,7 @@ create policy "subscriptions_select_group" on public.subscriptions
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.my_group_id()
         or public.is_admin()
     );
 
@@ -458,7 +506,7 @@ create policy "mentorship_bookings_select_group" on public.mentorship_bookings
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.my_group_id()
         or public.is_admin()
     );
 
@@ -477,7 +525,7 @@ create policy "wishes_select_group" on public.wishes
     for select using (
         auth.uid() = owner_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.my_group_id()
     );
 
 drop policy if exists "wishes_insert_own" on public.wishes;
@@ -490,7 +538,7 @@ create policy "wishes_update_group" on public.wishes
     for update using (
         auth.uid() = owner_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.my_group_id()
     );
 
 drop policy if exists "wishes_delete_own" on public.wishes;
@@ -506,7 +554,7 @@ create policy "wish_contributions_select_group" on public.wish_contributions
             select w.id from public.wishes w
             where w.owner_id = auth.uid()
                or w.group_id = auth.uid()
-               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+               or w.group_id = public.my_group_id()
         )
     );
 
@@ -519,7 +567,7 @@ create policy "wish_contributions_insert_own" on public.wish_contributions
             select w.id from public.wishes w
             where w.owner_id = auth.uid()
                or w.group_id = auth.uid()
-               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+               or w.group_id = public.my_group_id()
         )
     );
 
@@ -590,7 +638,20 @@ begin
         order by (status = 'active') desc, created_at desc
         limit 1;
 
-    if owner_account is null then return 'no_plan'; end if;
+    -- Admins e usuários premium têm acesso liberado sem uma assinatura no
+    -- Mercado Pago. Sem este tratamento, o dono do código (ex.: o próprio
+    -- administrador) seria reportado como "sem plano ativo" e o parceiro não
+    -- conseguiria se vincular. Tratamos como plano "trisal" (limite generoso).
+    if owner_account is null then
+        if exists (
+            select 1 from public.profiles
+            where id = partner and (role = 'admin' or is_premium)
+        ) then
+            owner_account := 'throuple';
+        else
+            return 'no_plan';
+        end if;
+    end if;
 
     limit_n := case owner_account when 'throuple' then 3 when 'couple' then 2 else 1 end;
 
