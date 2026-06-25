@@ -1382,9 +1382,11 @@
                 const amount = parseFloat(document.getElementById('wish-amount').value);
                 const scope = document.getElementById('wish-scope').value;
                 if (!title || !(amount > 0)) { showToast("Preencha o desejo e um valor válido.", "error"); return; }
-                const { error } = await supabase.from('wishes').insert([{
-                    owner_id: activeUser.id, group_id: myGroupId, title, amount, scope
-                }]);
+                const { error } = await supabase.rpc('create_wish', {
+                    wish_title: title,
+                    wish_amount: amount,
+                    wish_scope: scope
+                });
                 if (error) { showToast("Erro ao salvar desejo: " + error.message, "error"); return; }
                 showToast("Desejo adicionado! ⭐");
                 document.getElementById('form-wish').reset();
