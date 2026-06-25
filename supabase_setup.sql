@@ -105,6 +105,9 @@ create policy "profiles_select_own" on public.profiles
 drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
     for update using (auth.uid() = id) with check (auth.uid() = id);
+-- NOTA: o RLS controla QUAIS LINHAS, mas não quais colunas. A restrição de
+-- coluna (impedir o cliente de alterar role/is_premium) é feita via GRANT de
+-- coluna mais abaixo, na seção de GRANTs da Data API.
 
 -- O insert do perfil é feito pelo gatilho (security definer); ainda assim
 -- liberamos o insert da própria linha como contingência do front-end.
@@ -371,7 +374,11 @@ create index if not exists idx_wish_contributions_wish_id  on public.wish_contri
 -- ----------------------------------------------------------------------------
 grant usage on schema public to authenticated, service_role;
 
-grant select, insert, update on table public.profiles to authenticated;
+-- profiles: o UPDATE é restrito por COLUNA. Sem isto, como o RLS já libera a
+-- própria linha, o cliente poderia se autopromover alterando role/is_premium.
+-- Essas colunas ficam reservadas ao gatilho de cadastro e ao painel (service_role).
+grant select, insert on table public.profiles to authenticated;
+grant update (full_name, whatsapp, group_id) on table public.profiles to authenticated;
 grant select, insert, delete on table public.cards to authenticated;
 grant select, insert, delete on table public.transactions to authenticated;
 grant select, insert, update on table public.plan_prices to authenticated;

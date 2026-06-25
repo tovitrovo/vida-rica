@@ -466,13 +466,21 @@
         // ===================== UTILITÁRIOS =====================
         const moneyBR = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
 
+        // Escapa texto vindo do usuário/banco antes de inserir via innerHTML (anti-XSS)
+        const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
         function showToast(message, type = 'success') {
             const container = document.getElementById("toast-container");
             const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
             const color = type === 'success' ? 'bg-emerald-500' : 'bg-rose-500';
             const toast = document.createElement("div");
             toast.className = `toast-anim ${color} pointer-events-auto p-3 rounded-2xl shadow-lg text-white text-xs font-bold flex items-center gap-2 mb-2`;
-            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            // Constrói os nós separadamente: a mensagem entra como texto puro (nunca como HTML)
+            const iconEl = document.createElement("i");
+            iconEl.className = `fa-solid ${icon}`;
+            const span = document.createElement("span");
+            span.textContent = message;
+            toast.append(iconEl, span);
             container.appendChild(toast);
             setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 3000);
         }
@@ -733,7 +741,7 @@
                     listHtml += `
                         <div class="flex items-center justify-between p-2 border-b border-slate-50">
                             <div class="min-w-0">
-                                <span class="font-bold text-slate-700 block truncate">${tx.description || 'Sem descrição'}${isParc}</span>
+                                <span class="font-bold text-slate-700 block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}</span>
                                 <span class="text-[8px] font-bold px-1.5 py-0.5 rounded ${badge}">${label}</span>
                                 <span class="text-[8px] text-slate-400 ml-1">${dateStr}</span>
                             </div>
@@ -773,11 +781,12 @@
 
             cards.forEach(c => {
                 const tipoLabel = c.type === 'credit' ? 'Crédito' : 'Débito/Conta';
-                selectHtml += `<option value="${c.id}">${c.name} (${tipoLabel})</option>`;
+                const safeName = escapeHtml(c.name);
+                selectHtml += `<option value="${c.id}">${safeName} (${tipoLabel})</option>`;
                 listHtml += `
                     <div class="flex justify-between items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
                         <div class="min-w-0">
-                            <span class="font-bold text-slate-700 block truncate"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-sky-500'} mr-1.5"></i>${c.name}</span>
+                            <span class="font-bold text-slate-700 block truncate"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-sky-500'} mr-1.5"></i>${safeName}</span>
                             <span class="text-[9px] font-bold uppercase text-slate-400">${tipoLabel}</span>
                         </div>
                         <button type="button" data-del-card="${c.id}" class="text-rose-500 hover:text-rose-600 text-xs shrink-0 px-2 py-1 rounded-lg" title="Excluir cartão ou conta">
@@ -919,7 +928,7 @@
                     <div class="border border-slate-100 rounded-2xl p-3 ${achieved ? 'bg-emerald-50/40' : 'bg-white'} space-y-2">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0">
-                                <span class="font-bold text-slate-700 text-xs block truncate">${w.title}</span>
+                                <span class="font-bold text-slate-700 text-xs block truncate">${escapeHtml(w.title)}</span>
                                 <div class="flex items-center gap-1.5 mt-0.5">${scopeBadge}<span class="text-[9px] text-slate-400">Meta ${moneyBR(amount)}</span></div>
                             </div>
                             <span class="font-black text-purple-800 text-sm shrink-0">${moneyBR(remaining)}<span class="block text-[8px] text-slate-400 font-medium text-right">faltam</span></span>
@@ -1084,8 +1093,8 @@
                 return `<div class="border border-slate-100 rounded-2xl p-3">
                     <div class="flex items-center justify-between gap-2">
                         <div class="min-w-0">
-                            <span class="font-bold text-slate-700 block truncate">${p.full_name || '(sem nome)'} ${p.role === 'admin' ? '<span class="text-[8px] bg-slate-800 text-amber-300 px-1 rounded">ADMIN</span>' : ''}</span>
-                            <span class="text-[10px] text-slate-400 truncate block">${p.email || ''}</span>
+                            <span class="font-bold text-slate-700 block truncate">${escapeHtml(p.full_name || '(sem nome)')} ${p.role === 'admin' ? '<span class="text-[8px] bg-slate-800 text-amber-300 px-1 rounded">ADMIN</span>' : ''}</span>
+                            <span class="text-[10px] text-slate-400 truncate block">${escapeHtml(p.email || '')}</span>
                         </div>
                         <span class="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${statusCls} shrink-0">${statusLabel}</span>
                     </div>
