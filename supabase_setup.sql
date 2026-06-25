@@ -791,7 +791,32 @@ begin
     end if;
 end $$;
 
--- 15.2. wishes: banco antigo pode ter FK wishes_group_id_fkey que não existe
+-- 15.2. transactions: banco antigo pode ter check constraint com valores
+--       diferentes dos atuais ('income','fixed','invest','free').
+--       Removemos qualquer constraint de tipo existente e recriamos corretamente.
+do $$
+declare
+    conname text;
+begin
+    select c.conname into conname
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'public'
+      and t.relname  = 'transactions'
+      and c.contype  = 'c'
+      and c.conname  like '%type%';
+
+    if conname is not null then
+        execute format('alter table public.transactions drop constraint %I', conname);
+    end if;
+end $$;
+
+alter table public.transactions
+    add constraint transactions_type_check
+    check (type in ('income', 'fixed', 'invest', 'free'));
+
+-- 15.3. wishes: banco antigo pode ter FK wishes_group_id_fkey que não existe
 --       mais no schema atual (group_id é apenas uuid NOT NULL, sem FK externa).
 --       Removemos a constraint para que create_wish() funcione corretamente.
 alter table public.wishes drop constraint if exists wishes_group_id_fkey;
