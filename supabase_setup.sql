@@ -748,5 +748,54 @@ create trigger on_auth_user_created
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 -- ============================================================================
+-- 15. MIGRAÇÃO DE CORREÇÃO DE SCHEMA (idempotente)
+--     Corrige divergências entre o schema original e o banco já provisionado.
+-- ============================================================================
+
+-- 15.1. transactions: banco antigo tinha coluna account_id NOT NULL.
+--       O schema atual usa card_id (FK para public.cards, nullable).
+--       Renomeamos account_id → card_id se ainda existir com o nome antigo,
+--       e garantimos que seja nullable para lançamentos sem cartão vinculado.
+do $$
+begin
+    -- Renomear account_id → card_id se a coluna velha ainda existir
+    if exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public'
+          and table_name   = 'transactions'
+          and column_name  = 'account_id'
+    ) then
+        -- Só renomeia se card_id ainda não existe
+        if not exists (
+            select 1 from information_schema.columns
+            where table_schema = 'public'
+              and table_name   = 'transactions'
+              and column_name  = 'card_id'
+        ) then
+            alter table public.transactions rename column account_id to card_id;
+        else
+            -- Ambas existem: torna account_id nullable para não bloquear inserts
+            alter table public.transactions alter column account_id drop not null;
+        end if;
+    end if;
+
+    -- Garante que card_id seja nullable (sem quebrar lançamentos sem cartão)
+    if exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public'
+          and table_name   = 'transactions'
+          and column_name  = 'card_id'
+          and is_nullable  = 'NO'
+    ) then
+        alter table public.transactions alter column card_id drop not null;
+    end if;
+end $$;
+
+-- 15.2. wishes: banco antigo pode ter FK wishes_group_id_fkey que não existe
+--       mais no schema atual (group_id é apenas uuid NOT NULL, sem FK externa).
+--       Removemos a constraint para que create_wish() funcione corretamente.
+alter table public.wishes drop constraint if exists wishes_group_id_fkey;
+
+-- ============================================================================
 -- FIM DO SCRIPT
 -- ============================================================================
