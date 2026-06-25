@@ -304,7 +304,7 @@ create table if not exists public.mentorship_bookings (
 create table if not exists public.wishes (
     id          uuid primary key default gen_random_uuid(),
     owner_id    uuid not null references auth.users (id) on delete cascade,
-    group_id    uuid,
+    group_id    uuid not null,
     title       text not null,
     amount      numeric(14, 2) not null default 0,
     scope       text not null default 'personal' check (scope in ('personal', 'shared')),
@@ -362,6 +362,8 @@ alter table public.mentorship_bookings add column if not exists created_at   tim
 
 alter table public.wishes add column if not exists owner_id    uuid references auth.users (id) on delete cascade;
 alter table public.wishes add column if not exists group_id    uuid;
+update public.wishes set group_id = owner_id where group_id is null and owner_id is not null;
+alter table public.wishes alter column group_id set not null;
 alter table public.wishes add column if not exists title       text;
 alter table public.wishes add column if not exists amount      numeric(14, 2) not null default 0;
 
@@ -609,7 +611,7 @@ begin
     insert into public.wishes (owner_id, group_id, title, amount, scope)
     values (
         auth.uid(),
-        public.current_group_id(),
+        coalesce(public.current_group_id(), auth.uid()),
         btrim(wish_title),
         wish_amount,
         normalized_scope
