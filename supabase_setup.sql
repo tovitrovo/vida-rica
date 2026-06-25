@@ -364,6 +364,29 @@ alter table public.wishes add column if not exists owner_id    uuid references a
 alter table public.wishes add column if not exists group_id    uuid;
 alter table public.wishes add column if not exists title       text;
 alter table public.wishes add column if not exists amount      numeric(14, 2) not null default 0;
+
+do $$
+begin
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'wishes'
+          and column_name = 'target_amount'
+    ) then
+        update public.wishes
+           set amount = target_amount
+         where target_amount is not null
+           and (amount is null or amount = 0);
+
+        alter table public.wishes
+            alter column target_amount drop not null;
+
+        alter table public.wishes
+            alter column target_amount set default 0;
+    end if;
+end $$;
+
 alter table public.wishes add column if not exists scope       text not null default 'personal';
 alter table public.wishes add column if not exists status      text not null default 'open';
 alter table public.wishes add column if not exists target_date date;
