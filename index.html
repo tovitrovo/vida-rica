@@ -775,14 +775,67 @@
                 const tipoLabel = c.type === 'credit' ? 'Crédito' : 'Débito/Conta';
                 selectHtml += `<option value="${c.id}">${c.name} (${tipoLabel})</option>`;
                 listHtml += `
-                    <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-                        <span class="font-bold text-slate-700"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-sky-500'} mr-1.5"></i>${c.name}</span>
-                        <span class="text-[9px] font-bold uppercase text-slate-400">${tipoLabel}</span>
+                    <div class="flex justify-between items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
+                        <div class="min-w-0">
+                            <span class="font-bold text-slate-700 block truncate"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card text-purple-500' : 'fa-building-columns text-sky-500'} mr-1.5"></i>${c.name}</span>
+                            <span class="text-[9px] font-bold uppercase text-slate-400">${tipoLabel}</span>
+                        </div>
+                        <button type="button" data-del-card="${c.id}" class="text-rose-500 hover:text-rose-600 text-xs shrink-0 px-2 py-1 rounded-lg" title="Excluir cartão ou conta">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
                     </div>`;
             });
 
             document.getElementById("tx-card").innerHTML = selectHtml;
             document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum cartão cadastrado.</p>`;
+        }
+
+        async function deleteCardOrAccount(cardId) {
+            const { data: card, error: cardErr } = await supabase
+                .from('cards')
+                .select('id, name, type')
+                .eq('id', cardId)
+                .eq('user_id', activeUser?.id)
+                .maybeSingle();
+
+            if (cardErr || !card) {
+                showToast("Cartão ou conta não encontrado.", "error");
+                return;
+            }
+
+            const { data: linkedTx, error: txErr } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('card_id', cardId)
+                .limit(1);
+
+            if (txErr) {
+                showToast("Não foi possível verificar vínculos: " + txErr.message, "error");
+                return;
+            }
+            if ((linkedTx || []).length) {
+                showToast("Não é possível apagar: existem lançamentos vinculados.", "error");
+                return;
+            }
+
+            const kind = card.type === 'credit' ? 'cartão' : 'conta bancária';
+            const ok = confirm(`Excluir ${kind} "${card.name}"?\n\nEsta ação é irreversível.`);
+            if (!ok) return;
+
+            const { error } = await supabase
+                .from('cards')
+                .delete()
+                .eq('id', cardId)
+                .eq('user_id', activeUser?.id);
+
+            if (error) {
+                const linkedMsg = (error.message || "").toLowerCase().includes("lançamento");
+                showToast(linkedMsg ? "Não é possível apagar: existem lançamentos vinculados." : "Erro ao apagar: " + error.message, "error");
+                return;
+            }
+
+            showToast("Cartão/conta removido.");
+            fetchCards();
         }
 
         // ===================== DESEJOS =====================
@@ -1462,6 +1515,10 @@
                 showToast("Cartão/Conta registrado!");
                 document.getElementById('form-card').reset();
                 fetchCards(); // atualiza o seletor de lançamentos na hora
+            });
+            document.getElementById('cards-list').addEventListener('click', (e) => {
+                const del = e.target.closest('[data-del-card]');
+                if (del) deleteCardOrAccount(del.dataset.delCard);
             });
 
             // ---- Copiar código de convite ----
