@@ -680,21 +680,32 @@ set search_path = public
 as $$
 declare
     owner_account text;
+    owner_role    text;
     limit_n int;
     current_n int;
 begin
     if partner = auth.uid() then return 'self'; end if;
 
-    select account_type into owner_account
-        from public.subscriptions
-        where user_id = partner
-          and status = 'active'
-        order by (status = 'active') desc, created_at desc
+    -- Admin não precisa de assinatura ativa para ter um grupo
+    select role into owner_role
+        from public.profiles
+        where id = partner
         limit 1;
 
-    if owner_account is null then return 'no_plan'; end if;
+    if owner_role = 'admin' then
+        limit_n := 3;
+    else
+        select account_type into owner_account
+            from public.subscriptions
+            where user_id = partner
+              and status = 'active'
+            order by (status = 'active') desc, created_at desc
+            limit 1;
 
-    limit_n := case owner_account when 'throuple' then 3 when 'couple' then 2 else 1 end;
+        if owner_account is null then return 'no_plan'; end if;
+
+        limit_n := case owner_account when 'throuple' then 3 when 'couple' then 2 else 1 end;
+    end if;
 
     select count(*) into current_n
         from public.profiles
