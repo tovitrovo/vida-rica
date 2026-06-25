@@ -609,7 +609,7 @@ begin
     insert into public.wishes (owner_id, group_id, title, amount, scope)
     values (
         auth.uid(),
-        coalesce(public.current_group_id(), auth.uid()),
+        public.current_group_id(),
         btrim(wish_title),
         wish_amount,
         normalized_scope
