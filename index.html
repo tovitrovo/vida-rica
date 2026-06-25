@@ -371,11 +371,72 @@
             <!-- ABA ADMIN: HORÁRIOS DE MENTORIA -->
             <div id="adm-panel-mentorship" class="adm-panel bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hidden">
                 <h4 class="font-extrabold text-sm text-slate-800"><i class="fa-solid fa-calendar-plus mr-1.5 text-purple-600"></i>Horários de Mentoria</h4>
-                <form id="form-slot" class="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                    <label class="block text-[9px] font-bold text-slate-400 uppercase">Novo horário disponível (1h)</label>
-                    <input type="datetime-local" id="slot-datetime" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
-                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Abrir Horário</button>
+                <form id="form-slot-scale" class="space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <label class="block text-[9px] font-bold text-slate-400 uppercase">Escala por período</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">De</label>
+                            <input type="date" id="slot-period-start" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Até</label>
+                            <input type="date" id="slot-period-end" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Dias da semana</label>
+                        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold">
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="1" class="slot-weekday sr-only"><span>Seg</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="2" class="slot-weekday sr-only"><span>Ter</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="3" class="slot-weekday sr-only"><span>Qua</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="4" class="slot-weekday sr-only"><span>Qui</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="5" class="slot-weekday sr-only"><span>Sex</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="6" class="slot-weekday sr-only"><span>Sáb</span></label>
+                            <label class="cursor-pointer rounded-xl border border-slate-200 bg-white py-2"><input type="checkbox" data-slot-weekday="0" class="slot-weekday sr-only"><span>Dom</span></label>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Início</label>
+                            <input type="time" id="slot-scale-start-time" required value="08:00" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Fim</label>
+                            <input type="time" id="slot-scale-end-time" required value="12:00" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Sessão</label>
+                            <select id="slot-scale-duration" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-purple-400">
+                                <option value="30">30 min</option>
+                                <option value="45">45 min</option>
+                                <option value="60" selected>60 min</option>
+                                <option value="90">90 min</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="flex items-start gap-2 text-[10px] font-bold text-slate-500 bg-white border border-slate-100 p-2 rounded-xl">
+                        <input type="checkbox" id="slot-replace-open" class="mt-0.5 accent-purple-700">
+                        <span>Substituir horários livres já existentes neste período</span>
+                    </label>
+                    <p id="slot-scale-preview" class="text-[10px] text-slate-400 font-medium"></p>
+                    <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Gerar escala</button>
                 </form>
+                <form id="form-slot-specific" class="space-y-3 bg-white p-3 rounded-2xl border border-slate-100">
+                    <label class="block text-[9px] font-bold text-slate-400 uppercase">Datas específicas</label>
+                    <textarea id="slot-specific-dates" rows="2" placeholder="Ex: 2026-07-03, 2026-07-10 ou 03/07/2026" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400"></textarea>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="time" id="slot-specific-start-time" value="08:00" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
+                        <input type="time" id="slot-specific-end-time" value="12:00" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
+                        <select id="slot-specific-duration" class="w-full px-2 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-purple-400">
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60" selected>60 min</option>
+                            <option value="90">90 min</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all active:scale-[0.98]">Abrir datas específicas</button>
+                </form>
+                <div id="adm-slots-summary" class="text-[10px] text-slate-400 font-bold px-1"></div>
                 <div id="adm-slots-list" class="space-y-2 pt-1"></div>
             </div>
         </main>
@@ -436,6 +497,64 @@
             else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
             else if (v.length > 0) v = `(${v}`;
             return v;
+        }
+
+        const dateInputBR = (date) => {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
+        function parseDateInput(value) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+            if (!m) return null;
+            return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        }
+
+        function parseSpecificDate(value) {
+            const clean = (value || "").trim();
+            let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(clean);
+            if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+            m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(clean);
+            if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+            return null;
+        }
+
+        function parseTimeMinutes(value) {
+            const m = /^(\d{2}):(\d{2})$/.exec(value || "");
+            if (!m) return null;
+            return Number(m[1]) * 60 + Number(m[2]);
+        }
+
+        function buildSlotDates(days, startTime, endTime, durationMin) {
+            const startMin = parseTimeMinutes(startTime);
+            const endMin = parseTimeMinutes(endTime);
+            if (startMin === null || endMin === null || !(durationMin > 0) || endMin <= startMin) return [];
+
+            const slots = [];
+            const seen = new Set();
+            days.forEach((day) => {
+                for (let min = startMin; min + durationMin <= endMin; min += durationMin) {
+                    const d = new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(min / 60), min % 60);
+                    const key = d.getTime();
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        slots.push(d);
+                    }
+                }
+            });
+            return slots.sort((a, b) => a - b);
+        }
+
+        function setDefaultSchedulePeriod() {
+            const start = document.getElementById('slot-period-start');
+            const end = document.getElementById('slot-period-end');
+            if (!start || start.value) return;
+            const today = new Date();
+            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            start.value = dateInputBR(today);
+            end.value = dateInputBR(monthEnd);
         }
 
         // ===================== AUTENTICAÇÃO À PROVA DE FALHAS =====================
@@ -848,8 +967,9 @@
             }
             box.innerHTML = slots.map(s => {
                 const d = new Date(s.starts_at);
+                const duration = Number(s.duration_min) || 60;
                 return `<div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-                    <span class="text-[11px] font-bold text-slate-700"><i class="fa-solid fa-clock text-purple-500 mr-1.5"></i>${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span class="text-[11px] font-bold text-slate-700"><i class="fa-solid fa-clock text-purple-500 mr-1.5"></i>${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${duration}min</span>
                     <button data-book-slot="${s.id}" data-book-at="${s.starts_at}" class="bg-purple-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-95">Agendar</button>
                 </div>`;
             }).join('');
@@ -965,13 +1085,18 @@
             } catch (_) { bookings = []; }
             const bookedSlot = {};
             bookings.forEach(b => bookedSlot[b.slot_id] = b);
+            const freeCount = slots.filter(s => !s.is_booked && !bookedSlot[s.id]).length;
+            const bookedCount = slots.length - freeCount;
+            document.getElementById('adm-slots-summary').innerText =
+                `${slots.length} horário(s) na agenda · ${freeCount} livre(s) · ${bookedCount} agendado(s)`;
 
             document.getElementById('adm-slots-list').innerHTML = slots.map(s => {
                 const d = new Date(s.starts_at);
                 const past = s.starts_at < nowIso;
                 const taken = s.is_booked || bookedSlot[s.id];
+                const duration = Number(s.duration_min) || 60;
                 return `<div class="flex items-center justify-between gap-2 p-2.5 rounded-2xl border ${taken ? 'bg-emerald-50 border-emerald-100' : past ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-100'}">
-                    <span class="text-[11px] font-bold text-slate-700">${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span class="text-[11px] font-bold text-slate-700">${d.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} · ${duration}min</span>
                     <div class="flex items-center gap-2 shrink-0">
                         <span class="text-[9px] font-bold uppercase ${taken ? 'text-emerald-600' : 'text-slate-400'}">${taken ? 'Agendado' : (past ? 'Expirado' : 'Livre')}</span>
                         ${!taken ? `<button data-del-slot="${s.id}" class="text-rose-500 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -980,12 +1105,146 @@
             }).join('') || `<p class="text-slate-400 text-center py-4 text-[10px]">Nenhum horário criado.</p>`;
         }
 
-        async function createAdminSlot(startsAt) {
-            const { error } = await supabase.from('mentorship_slots')
-                .insert([{ admin_id: activeUser.id, starts_at: new Date(startsAt).toISOString() }]);
-            if (error) { showToast("Erro ao criar horário: " + error.message, "error"); return; }
-            showToast("Horário aberto!");
+        function updateWeekdayStyles() {
+            document.querySelectorAll('.slot-weekday').forEach(inp => {
+                const label = inp.closest('label');
+                if (!label) return;
+                label.className = `cursor-pointer rounded-xl border py-2 ${inp.checked ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-slate-500 border-slate-200'}`;
+            });
+        }
+
+        function selectedWeekdays() {
+            return Array.from(document.querySelectorAll('.slot-weekday:checked'))
+                .map(inp => Number(inp.dataset.slotWeekday));
+        }
+
+        function scaleSlotDates(showErrors = false) {
+            const startDate = parseDateInput(document.getElementById('slot-period-start').value);
+            const endDate = parseDateInput(document.getElementById('slot-period-end').value);
+            const weekdays = selectedWeekdays();
+            const startTime = document.getElementById('slot-scale-start-time').value;
+            const endTime = document.getElementById('slot-scale-end-time').value;
+            const duration = Number(document.getElementById('slot-scale-duration').value);
+
+            if (!startDate || !endDate) {
+                if (showErrors) showToast("Informe o período da escala.", "error");
+                return { slots: [], duration };
+            }
+            if (endDate < startDate) {
+                if (showErrors) showToast("A data final precisa ser depois da inicial.", "error");
+                return { slots: [], duration };
+            }
+            if (!weekdays.length) {
+                if (showErrors) showToast("Escolha pelo menos um dia da semana.", "error");
+                return { slots: [], duration };
+            }
+
+            const days = [];
+            const cursor = new Date(startDate);
+            while (cursor <= endDate) {
+                if (weekdays.includes(cursor.getDay())) days.push(new Date(cursor));
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            const slots = buildSlotDates(days, startTime, endTime, duration);
+            if (!slots.length && showErrors) showToast("A faixa de horário não gerou sessões.", "error");
+            return { slots, duration };
+        }
+
+        function updateScalePreview() {
+            const { slots } = scaleSlotDates(false);
+            const el = document.getElementById('slot-scale-preview');
+            if (!el) return;
+            el.innerText = slots.length
+                ? `${slots.length} horário(s) serão criados nesta escala.`
+                : "Escolha período, dias e horários para pré-visualizar a escala.";
+        }
+
+        async function saveGeneratedSlots(slotDates, durationMin, replaceOpen = false) {
+            const futureSlots = slotDates.filter(d => d.getTime() > Date.now()).sort((a, b) => a - b);
+            if (!futureSlots.length) {
+                showToast("Nenhum horário futuro para abrir.", "error");
+                return;
+            }
+
+            const minIso = futureSlots[0].toISOString();
+            const maxIso = new Date(futureSlots[futureSlots.length - 1].getTime() + 60 * 1000).toISOString();
+
+            if (replaceOpen) {
+                const { error: delErr } = await supabase.from('mentorship_slots')
+                    .delete()
+                    .eq('admin_id', activeUser.id)
+                    .eq('is_booked', false)
+                    .gte('starts_at', minIso)
+                    .lte('starts_at', maxIso);
+                if (delErr) {
+                    showToast("Erro ao substituir agenda: " + delErr.message, "error");
+                    return;
+                }
+            }
+
+            let existing = [];
+            try {
+                const { data } = await supabase.from('mentorship_slots')
+                    .select('starts_at')
+                    .gte('starts_at', minIso)
+                    .lte('starts_at', maxIso);
+                existing = data || [];
+            } catch (_) { existing = []; }
+
+            const existingKeys = new Set(existing.map(s => new Date(s.starts_at).getTime()));
+            const rows = futureSlots
+                .filter(d => !existingKeys.has(d.getTime()))
+                .map(d => ({
+                    admin_id: activeUser.id,
+                    starts_at: d.toISOString(),
+                    duration_min: durationMin
+                }));
+
+            if (!rows.length) {
+                showToast("Todos os horários desta escala já existem.", "error");
+                return;
+            }
+
+            const { error } = await supabase.from('mentorship_slots').insert(rows);
+            if (error) {
+                showToast("Erro ao gerar escala: " + error.message, "error");
+                return;
+            }
+            showToast(`${rows.length} horário(s) aberto(s).`);
             fetchAdminSlots();
+        }
+
+        async function createScaleSlots() {
+            const { slots, duration } = scaleSlotDates(true);
+            if (!slots.length) return;
+            await saveGeneratedSlots(slots, duration, document.getElementById('slot-replace-open').checked);
+        }
+
+        async function createSpecificSlots() {
+            const raw = document.getElementById('slot-specific-dates').value;
+            const uniqueDays = new Map();
+            raw.split(/[\n,;]+/).forEach(part => {
+                const d = parseSpecificDate(part);
+                if (d) uniqueDays.set(dateInputBR(d), d);
+            });
+            if (!uniqueDays.size) {
+                showToast("Informe pelo menos uma data válida.", "error");
+                return;
+            }
+
+            const duration = Number(document.getElementById('slot-specific-duration').value);
+            const slots = buildSlotDates(
+                Array.from(uniqueDays.values()),
+                document.getElementById('slot-specific-start-time').value,
+                document.getElementById('slot-specific-end-time').value,
+                duration
+            );
+            if (!slots.length) {
+                showToast("A faixa de horário não gerou sessões.", "error");
+                return;
+            }
+            await saveGeneratedSlots(slots, duration, false);
+            document.getElementById('slot-specific-dates').value = "";
         }
 
         async function deleteAdminSlot(slotId) {
@@ -1040,12 +1299,23 @@
             document.getElementById('adm-nav-prices').addEventListener('click', () => { switchAdminTab('adm-panel-prices', 'adm-nav-prices'); fetchAdminPrices(); });
             document.getElementById('adm-nav-mentorship').addEventListener('click', () => { switchAdminTab('adm-panel-mentorship', 'adm-nav-mentorship'); fetchAdminSlots(); });
             document.getElementById('btn-save-prices').addEventListener('click', saveAdminPrices);
-            document.getElementById('form-slot').addEventListener('submit', (e) => {
+            setDefaultSchedulePeriod();
+            document.querySelectorAll('.slot-weekday').forEach(inp => {
+                if ([1, 2, 5].includes(Number(inp.dataset.slotWeekday))) inp.checked = true;
+                inp.addEventListener('change', () => { updateWeekdayStyles(); updateScalePreview(); });
+            });
+            ['slot-period-start', 'slot-period-end', 'slot-scale-start-time', 'slot-scale-end-time', 'slot-scale-duration'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateScalePreview);
+            });
+            updateWeekdayStyles();
+            updateScalePreview();
+            document.getElementById('form-slot-scale').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const dt = document.getElementById('slot-datetime').value;
-                if (!dt) return;
-                createAdminSlot(dt);
-                document.getElementById('form-slot').reset();
+                createScaleSlots();
+            });
+            document.getElementById('form-slot-specific').addEventListener('submit', (e) => {
+                e.preventDefault();
+                createSpecificSlots();
             });
             document.getElementById('adm-slots-list').addEventListener('click', (e) => {
                 const del = e.target.closest('[data-del-slot]');

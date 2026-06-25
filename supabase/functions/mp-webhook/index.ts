@@ -37,6 +37,11 @@ Deno.serve(async (req) => {
   // Sempre respondemos 200 rápido para o Mercado Pago não reenviar em loop;
   // erros internos são apenas logados.
   try {
+    if (!MP_ACCESS_TOKEN || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      console.error("Secrets obrigatórios ausentes para mp-webhook");
+      return new Response("missing config", { status: 200 });
+    }
+
     const url = new URL(req.url);
     let preapprovalId = url.searchParams.get("id") ??
       url.searchParams.get("data.id");
@@ -76,8 +81,8 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
     // Calcula o fim do período corrente (próxima cobrança), se disponível.
-    const periodEnd = pre?.auto_recurring?.end_date ??
-      pre?.next_payment_date ?? null;
+    const periodEnd = pre?.next_payment_date ??
+      pre?.auto_recurring?.end_date ?? null;
 
     const update: Record<string, unknown> = {
       status: newStatus,
@@ -85,19 +90,45 @@ Deno.serve(async (req) => {
     };
     if (periodEnd) update.current_period_end = periodEnd;
 
-    const { data: updated } = await admin
+    const { data: updated, error: updateErr } = await admin
       .from("subscriptions")
       .update(update)
       .eq("mp_preapproval_id", preapprovalId)
       .select("user_id, group_id")
       .maybeSingle();
 
-    const targetUser = updated?.user_id ?? userId;
-    if (targetUser) {
+    if (updateErr) {
+      console.error("Falha ao atualizar assinatura", updateErr);
+      return new Response("db update failed", { status: 200 });
+    }
+
+    if (!updated) {
+      console.warn("Preapproval sem assinatura local vinculada", {
+        preapprovalId,
+        external_reference: userId,
+      });
+      return new Response("ok", { status: 200 });
+    }
+
+    const targetGroup = updated.group_id ?? updated.user_id;
+    const { data: activeRows, error: activeErr } = await admin
+      .from("subscriptions")
+      .select("id")
+      .eq("status", "active")
+      .or(`user_id.eq.${updated.user_id},group_id.eq.${targetGroup}`)
+      .limit(1);
+
+    if (activeErr) {
+      console.error("Falha ao recalcular acesso premium", activeErr);
+      return new Response("premium sync failed", { status: 200 });
+    }
+
+    const hasActiveSubscription = (activeRows?.length ?? 0) > 0;
+    if (targetGroup) {
       await admin
         .from("profiles")
-        .update({ is_premium: newStatus === "active" })
-        .eq("id", targetUser);
+        .update({ is_premium: hasActiveSubscription })
+        .or(`id.eq.${targetGroup},group_id.eq.${targetGroup}`);
     }
 
     return new Response("ok", { status: 200 });

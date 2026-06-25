@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
   if (!MP_ACCESS_TOKEN) {
     return json({ error: "MP_ACCESS_TOKEN não configurado." }, 500);
   }
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    return json({ error: "Ambiente Supabase não configurado." }, 500);
+  }
 
   // --- Identifica o usuário a partir do JWT ---
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -88,6 +91,9 @@ Deno.serve(async (req) => {
     return json({ error: "Preço do plano não encontrado." }, 400);
   }
   const amount = Number(price.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return json({ error: "Preço do plano inválido." }, 400);
+  }
 
   // --- Cria a preapproval (assinatura recorrente mensal) no Mercado Pago ---
   const reason = `Vida Rica — Plano ${PLAN_LABELS[accountType]}${

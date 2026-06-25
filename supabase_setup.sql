@@ -319,10 +319,46 @@ alter table public.wish_contributions add column if not exists created_at timest
 -- Índices de apoio
 create index if not exists idx_subscriptions_user_id       on public.subscriptions (user_id);
 create index if not exists idx_subscriptions_group_id      on public.subscriptions (group_id);
+create unique index if not exists idx_subscriptions_mp_preapproval_id
+    on public.subscriptions (mp_preapproval_id)
+    where mp_preapproval_id is not null;
 create index if not exists idx_mentorship_bookings_user_id on public.mentorship_bookings (user_id);
+create unique index if not exists idx_mentorship_slots_admin_starts_at
+    on public.mentorship_slots (admin_id, starts_at);
 create index if not exists idx_wishes_group_id             on public.wishes (group_id);
 create index if not exists idx_wishes_owner_id             on public.wishes (owner_id);
 create index if not exists idx_wish_contributions_wish_id  on public.wish_contributions (wish_id);
+
+-- ----------------------------------------------------------------------------
+-- 11.2. GRANTS EXPLÍCITOS PARA DATA API
+--       Desde 30/05/2026, novos projetos Supabase podem não expor tabelas do
+--       schema public automaticamente. Mantemos os GRANTs junto do RLS para que
+--       o front-end via supabase-js e as Edge Functions via service_role funcionem.
+-- ----------------------------------------------------------------------------
+grant usage on schema public to authenticated, service_role;
+
+grant select, insert, update on table public.profiles to authenticated;
+grant select, insert, delete on table public.cards to authenticated;
+grant select, insert, delete on table public.transactions to authenticated;
+grant select, insert, update on table public.plan_prices to authenticated;
+grant select, insert on table public.subscriptions to authenticated;
+grant select, insert, update, delete on table public.mentorship_slots to authenticated;
+grant select, insert, update on table public.mentorship_bookings to authenticated;
+grant select, insert, update, delete on table public.wishes to authenticated;
+grant select, insert on table public.wish_contributions to authenticated;
+
+grant all privileges on table public.profiles to service_role;
+grant all privileges on table public.cards to service_role;
+grant all privileges on table public.transactions to service_role;
+grant all privileges on table public.plan_prices to service_role;
+grant all privileges on table public.subscriptions to service_role;
+grant all privileges on table public.mentorship_slots to service_role;
+grant all privileges on table public.mentorship_bookings to service_role;
+grant all privileges on table public.wishes to service_role;
+grant all privileges on table public.wish_contributions to service_role;
+
+revoke execute on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated, service_role;
 
 -- ============================================================================
 -- 12. ROW LEVEL SECURITY DAS NOVAS TABELAS
@@ -341,7 +377,9 @@ alter table public.wish_contributions  enable row level security;
 -- Qualquer autenticado lê os preços (tela de planos). Só admin altera.
 drop policy if exists "plan_prices_select_all" on public.plan_prices;
 create policy "plan_prices_select_all" on public.plan_prices
-    for select using (auth.role() = 'authenticated');
+    for select
+    to authenticated
+    using (true);
 
 drop policy if exists "plan_prices_update_admin" on public.plan_prices;
 create policy "plan_prices_update_admin" on public.plan_prices
@@ -372,7 +410,9 @@ create policy "subscriptions_insert_own" on public.subscriptions
 -- Leitura: qualquer autenticado vê os horários disponíveis. Admin gerencia.
 drop policy if exists "mentorship_slots_select_all" on public.mentorship_slots;
 create policy "mentorship_slots_select_all" on public.mentorship_slots
-    for select using (auth.role() = 'authenticated');
+    for select
+    to authenticated
+    using (true);
 
 drop policy if exists "mentorship_slots_admin_all" on public.mentorship_slots;
 create policy "mentorship_slots_admin_all" on public.mentorship_slots
@@ -487,6 +527,8 @@ create trigger on_booking_created
     before insert on public.mentorship_bookings
     for each row execute function public.handle_new_booking();
 
+revoke execute on function public.handle_new_booking() from public, anon, authenticated;
+
 -- ============================================================================
 -- 14. FUNÇÃO: public.join_partner(partner uuid)
 --     Vincula o usuário autenticado ao grupo do parceiro, respeitando o limite
@@ -510,6 +552,7 @@ begin
     select account_type into owner_account
         from public.subscriptions
         where user_id = partner
+          and status = 'active'
         order by (status = 'active') desc, created_at desc
         limit 1;
 
@@ -527,6 +570,9 @@ begin
     return 'ok';
 end;
 $$;
+
+revoke execute on function public.join_partner(uuid) from public, anon;
+grant execute on function public.join_partner(uuid) to authenticated;
 
 -- ============================================================================
 -- 5. GATILHO DE CRIAÇÃO DE PERFIL
@@ -562,6 +608,8 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
     after insert on auth.users
     for each row execute function public.handle_new_user();
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 -- ============================================================================
 -- FIM DO SCRIPT
