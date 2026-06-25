@@ -112,6 +112,27 @@ drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own" on public.profiles
     for insert with check (auth.uid() = id);
 
+-- ============================================================================
+-- 4.1.1. FUNÇÃO AUXILIAR: public.current_group_id()
+--        Lê o grupo do usuário autenticado com SECURITY DEFINER para evitar
+--        recursão de RLS quando políticas de outras tabelas precisam consultar
+--        public.profiles.
+-- ============================================================================
+create or replace function public.current_group_id()
+returns uuid
+language sql
+security definer
+stable
+set search_path = public
+as $$
+    select p.group_id
+    from public.profiles p
+    where p.id = auth.uid();
+$$;
+
+revoke execute on function public.current_group_id() from public, anon;
+grant execute on function public.current_group_id() to authenticated;
+
 -- ---------- POLÍTICAS: cards ----------
 drop policy if exists "cards_select_own" on public.cards;
 create policy "cards_select_own" on public.cards
@@ -132,7 +153,7 @@ create policy "transactions_select_group" on public.transactions
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.current_group_id()
     );
 
 -- Inserção: só posso lançar movimentações em meu próprio nome.
@@ -430,7 +451,7 @@ create policy "subscriptions_select_group" on public.subscriptions
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.current_group_id()
         or public.is_admin()
     );
 
@@ -458,7 +479,7 @@ create policy "mentorship_bookings_select_group" on public.mentorship_bookings
     for select using (
         auth.uid() = user_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.current_group_id()
         or public.is_admin()
     );
 
@@ -477,7 +498,7 @@ create policy "wishes_select_group" on public.wishes
     for select using (
         auth.uid() = owner_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.current_group_id()
     );
 
 drop policy if exists "wishes_insert_own" on public.wishes;
@@ -490,7 +511,7 @@ create policy "wishes_update_group" on public.wishes
     for update using (
         auth.uid() = owner_id
         or group_id = auth.uid()
-        or group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+        or group_id = public.current_group_id()
     );
 
 drop policy if exists "wishes_delete_own" on public.wishes;
@@ -506,7 +527,7 @@ create policy "wish_contributions_select_group" on public.wish_contributions
             select w.id from public.wishes w
             where w.owner_id = auth.uid()
                or w.group_id = auth.uid()
-               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+               or w.group_id = public.current_group_id()
         )
     );
 
@@ -519,7 +540,7 @@ create policy "wish_contributions_insert_own" on public.wish_contributions
             select w.id from public.wishes w
             where w.owner_id = auth.uid()
                or w.group_id = auth.uid()
-               or w.group_id = (select p.group_id from public.profiles p where p.id = auth.uid())
+               or w.group_id = public.current_group_id()
         )
     );
 
