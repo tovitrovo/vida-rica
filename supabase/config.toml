@@ -9,3 +9,7 @@ verify_jwt = true
 # O webhook é chamado pelo Mercado Pago (sem JWT). Deve ser público.
 [functions.mp-webhook]
 verify_jwt = false
+
+# Cancelamento de assinatura exige usuário autenticado.
+[functions.mp-cancel-subscription]
+verify_jwt = true

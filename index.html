@@ -161,12 +161,30 @@
 
             <!-- COFRE FINANCEIRO / MÉTRICA PRINCIPAL -->
             <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-wallet text-amber-500"></i> Livre para Gastar (Mês Corrente)
-                </p>
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-wallet text-amber-500"></i> Livre para Gastar
+                    </p>
+                    <div class="flex items-center gap-1">
+                        <button id="btn-prev-month" class="text-slate-300 hover:text-slate-500 active:scale-95 p-1.5 rounded-lg transition-colors"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                        <span id="dash-month-label" class="text-[10px] font-bold text-slate-600 min-w-[76px] text-center"></span>
+                        <button id="btn-next-month" class="text-slate-300 hover:text-slate-500 active:scale-95 p-1.5 rounded-lg transition-colors"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                    </div>
+                </div>
                 <h3 id="dash-free-balance" class="text-4xl font-black tracking-tight mt-1 text-amber-500">R$ 0,00</h3>
 
-                <div class="grid grid-cols-3 gap-2 mt-5">
+                <!-- Barra de saúde financeira -->
+                <div class="mt-3 space-y-1">
+                    <div class="flex justify-between text-[9px] font-bold text-slate-400">
+                        <span>Comprometido da renda</span>
+                        <span id="dash-health-pct">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div id="dash-health-bar" class="h-full rounded-full transition-all duration-500 bg-emerald-500" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 mt-4">
                     <div class="bg-emerald-50 p-2.5 rounded-2xl border border-emerald-100 text-center">
                         <span class="text-[8px] text-emerald-600/70 block font-bold uppercase">Renda</span>
                         <span id="dash-income" class="text-xs font-black text-emerald-600">R$ 0,00</span>
@@ -186,12 +204,12 @@
             </div>
 
             <!-- NAVEGAÇÃO ENTRE ABAS -->
-            <div class="bg-slate-200/60 p-1 rounded-2xl grid grid-cols-5 text-center text-[10px] font-bold text-slate-500">
-                <button id="nav-btn-launch" class="py-2 bg-sky-500 text-white rounded-xl shadow-sm">Lançar</button>
-                <button id="nav-btn-cards" class="py-2 rounded-xl">Cartões</button>
-                <button id="nav-btn-wishes" class="py-2 rounded-xl">Desejos</button>
-                <button id="nav-btn-mentorship" class="py-2 rounded-xl hidden">Mentoria</button>
-                <button id="nav-btn-partner" class="py-2 rounded-xl">Parceria</button>
+            <div id="nav-tabs" class="bg-slate-200/60 p-1 rounded-2xl flex text-center text-[10px] font-bold text-slate-500 gap-0.5">
+                <button id="nav-btn-launch" class="flex-1 py-2 bg-sky-500 text-white rounded-xl shadow-sm">Lançar</button>
+                <button id="nav-btn-cards" class="flex-1 py-2 rounded-xl">Cartões</button>
+                <button id="nav-btn-wishes" class="flex-1 py-2 rounded-xl">Desejos</button>
+                <button id="nav-btn-mentorship" class="flex-1 py-2 rounded-xl hidden">Mentoria</button>
+                <button id="nav-btn-partner" class="flex-1 py-2 rounded-xl">Parceria</button>
             </div>
 
             <!-- ABA 1: LANÇAMENTOS -->
@@ -239,9 +257,25 @@
                 </form>
 
                 <!-- EXTRATO -->
-                <div class="pt-4 border-t border-slate-100">
-                    <h5 class="font-bold text-xs text-slate-700 mb-2 flex justify-between"><span>Extrato Consolidado</span><span id="history-count" class="text-slate-400">0</span></h5>
-                    <div id="transactions-list" class="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs"></div>
+                <div class="pt-4 border-t border-slate-100 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h5 class="font-bold text-xs text-slate-700">Extrato</h5>
+                        <span class="flex items-center gap-1.5 text-slate-400 text-[10px]">
+                            <span id="history-count">0</span> lançamentos
+                        </span>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] pointer-events-none"></i>
+                        <input type="text" id="tx-search" placeholder="Buscar por descrição..." class="w-full pl-7 pr-3 py-1.5 border border-slate-200 rounded-xl text-[11px] outline-none bg-slate-50 focus:border-purple-300">
+                    </div>
+                    <div class="flex gap-1 flex-wrap">
+                        <button data-tx-filter="all"    class="tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-white">Todos</button>
+                        <button data-tx-filter="income" class="tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Renda</button>
+                        <button data-tx-filter="fixed"  class="tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg bg-rose-50 text-rose-700">Fixo</button>
+                        <button data-tx-filter="invest" class="tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg bg-sky-50 text-sky-700">Invest.</button>
+                        <button data-tx-filter="free"   class="tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700">Livre</button>
+                    </div>
+                    <div id="transactions-list" class="space-y-0.5 max-h-72 overflow-y-auto pr-1 text-xs scroll-smooth"></div>
                 </div>
             </div>
 
@@ -322,6 +356,9 @@
                     </div>
                     <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-[0.98]">Fundir Contas e Sincronizar Saldos</button>
                 </form>
+                <div class="pt-2 border-t border-slate-100">
+                    <button id="btn-cancel-subscription" type="button" class="w-full text-[10px] text-slate-400 font-medium underline py-1">Cancelar minha assinatura</button>
+                </div>
             </div>
 
         </main>
@@ -357,6 +394,10 @@
                     <span><i class="fa-solid fa-users mr-1.5 text-purple-600"></i>Clientes</span>
                     <span id="adm-clients-count" class="text-[10px] text-slate-400 font-bold">0</span>
                 </h4>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] pointer-events-none"></i>
+                    <input type="text" id="adm-client-search" placeholder="Buscar por nome ou e-mail..." class="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:border-slate-400">
+                </div>
                 <div id="adm-clients-list" class="space-y-2 text-xs"></div>
             </div>
 
@@ -462,6 +503,15 @@
         let planPrices = {};       // mapa "accountType|mentorship" -> amount
         let selectedAccount = 'individual'; // seleção na tela de planos
         let monthlySurplus = 0;    // sobra mensal (renda - saídas) p/ viabilidade de desejos
+
+        // Navegação de mês no dashboard
+        const _today = new Date();
+        let viewYear = _today.getFullYear();
+        let viewMonth = _today.getMonth();
+
+        // Cache de transações para filtro/busca client-side
+        let cachedTransactions = [];
+        let activeTxFilter = 'all';
 
         // ===================== UTILITÁRIOS =====================
         const moneyBR = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
@@ -707,11 +757,49 @@
             }
         }
 
-        // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
-        async function fetchDashboardAndTransactions() {
-            let totalIncome = 0, totalFixed = 0, totalInvest = 0, totalFree = 0;
-            let listHtml = "";
+        async function cancelSubscription() {
+            if (!confirm("Cancelar sua assinatura?\n\nVocê e seu grupo perderão o acesso ao encerrar o período atual.")) return;
+            const btn = document.getElementById('btn-cancel-subscription');
+            if (btn) { btn.disabled = true; btn.textContent = 'Cancelando...'; }
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const resp = await fetch(`${FUNCTIONS_URL}/mp-cancel-subscription`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
+                const out = await resp.json();
+                if (!resp.ok) { showToast(out.error || 'Erro ao cancelar assinatura.', 'error'); return; }
+                showToast('Assinatura cancelada. Obrigado por usar o Vida Rica.');
+                await checkAuth();
+            } catch (_) {
+                showToast('Falha de conexão ao cancelar.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Cancelar minha assinatura'; }
+            }
+        }
 
+        // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
+        const TX_PAGE_SIZE = 100;
+
+        function updateMonthLabel() {
+            const label = new Date(viewYear, viewMonth, 1)
+                .toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+            const el = document.getElementById('dash-month-label');
+            if (el) el.innerText = label.charAt(0).toUpperCase() + label.slice(1);
+            const now = new Date();
+            const isCurrent = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+            const nextBtn = document.getElementById('btn-next-month');
+            if (nextBtn) nextBtn.classList.toggle('opacity-30', isCurrent);
+        }
+
+        async function fetchDashboardAndTransactions() {
+            updateMonthLabel();
+
+            const startOfMonth = new Date(viewYear, viewMonth, 1).toISOString();
+            const startOfNextMonth = new Date(viewYear, viewMonth + 1, 1).toISOString();
             const searchId = myGroupId || activeUser?.id;
             let txs = [];
             try {
@@ -719,52 +807,102 @@
                     .from('transactions')
                     .select('*')
                     .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
-                    .order('created_at', { ascending: false });
+                    .gte('created_at', startOfMonth)
+                    .lt('created_at', startOfNextMonth)
+                    .order('created_at', { ascending: false })
+                    .limit(TX_PAGE_SIZE);
                 txs = data || [];
             } catch (_) { txs = []; }
 
-            document.getElementById("history-count").innerText = txs.length;
+            cachedTransactions = txs;
 
-            if (txs.length > 0) {
-                txs.forEach(tx => {
-                    const amt = parseFloat(tx.amount) || 0;
-                    if (tx.type === 'income')      totalIncome += amt;
-                    else if (tx.type === 'fixed')  totalFixed  += amt;
-                    else if (tx.type === 'invest') totalInvest += amt;
-                    else if (tx.type === 'free')   totalFree   += amt;
-
-                    const badge = { income: 'bg-emerald-50 text-emerald-600', fixed: 'bg-rose-50 text-rose-600', invest: 'bg-sky-50 text-sky-600', free: 'bg-amber-50 text-amber-600' }[tx.type];
-                    const label = { income: 'Renda', fixed: 'Fixo', invest: 'Futuro', free: 'Livre' }[tx.type];
-                    const isParc = tx.total_installments > 1 ? ` (${tx.current_installment}/${tx.total_installments})` : "";
-                    const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : "";
-
-                    listHtml += `
-                        <div class="flex items-center justify-between p-2 border-b border-slate-50">
-                            <div class="min-w-0">
-                                <span class="font-bold text-slate-700 block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}</span>
-                                <span class="text-[8px] font-bold px-1.5 py-0.5 rounded ${badge}">${label}</span>
-                                <span class="text-[8px] text-slate-400 ml-1">${dateStr}</span>
-                            </div>
-                            <span class="font-black shrink-0 ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-600'}">
-                                ${tx.type === 'income' ? '+' : '-'} ${moneyBR(amt)}
-                            </span>
-                        </div>`;
-                });
-                document.getElementById("transactions-list").innerHTML = listHtml;
-            } else {
-                document.getElementById("transactions-list").innerHTML = `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum lançamento ainda.</p>`;
-            }
+            let totalIncome = 0, totalFixed = 0, totalInvest = 0, totalFree = 0;
+            txs.forEach(tx => {
+                const amt = parseFloat(tx.amount) || 0;
+                if (tx.type === 'income')      totalIncome += amt;
+                else if (tx.type === 'fixed')  totalFixed  += amt;
+                else if (tx.type === 'invest') totalInvest += amt;
+                else if (tx.type === 'free')   totalFree   += amt;
+            });
 
             const freeBalance = totalIncome - totalFixed - totalInvest - totalFree;
-            document.getElementById("dash-free-balance").innerText = moneyBR(freeBalance);
+            const balanceEl = document.getElementById("dash-free-balance");
+            balanceEl.innerText = moneyBR(freeBalance);
+            balanceEl.className = `text-4xl font-black tracking-tight mt-1 ${
+                freeBalance > 0 ? 'text-amber-500' : freeBalance < 0 ? 'text-rose-500' : 'text-slate-400'
+            }`;
+
+            const committed = totalFixed + totalInvest + totalFree;
+            const healthPct = totalIncome > 0 ? Math.min(Math.round((committed / totalIncome) * 100), 100) : 0;
+            const overBudget = totalIncome > 0 && committed > totalIncome;
+            document.getElementById("dash-health-pct").innerText = `${healthPct}%`;
+            const bar = document.getElementById("dash-health-bar");
+            bar.style.width = `${healthPct}%`;
+            bar.className = `h-full rounded-full transition-all duration-500 ${
+                overBudget ? 'bg-rose-500' : healthPct > 80 ? 'bg-amber-400' : 'bg-emerald-500'
+            }`;
+
             document.getElementById("dash-income").innerText  = moneyBR(totalIncome);
             document.getElementById("dash-fixed").innerText   = moneyBR(totalFixed);
             document.getElementById("dash-invest").innerText  = moneyBR(totalInvest);
             document.getElementById("dash-free-spent").innerText = moneyBR(totalFree);
 
-            // Sobra mensal alimenta o cálculo de viabilidade dos desejos.
             monthlySurplus = freeBalance;
+            renderTransactions();
             if (cachedWishes.length) renderWishes();
+        }
+
+        function renderTransactions() {
+            const search = (document.getElementById('tx-search')?.value || '').toLowerCase().trim();
+            const filtered = cachedTransactions.filter(tx => {
+                if (activeTxFilter !== 'all' && tx.type !== activeTxFilter) return false;
+                if (search && !(tx.description || '').toLowerCase().includes(search)) return false;
+                return true;
+            });
+
+            const countLabel = cachedTransactions.length >= TX_PAGE_SIZE
+                ? `${cachedTransactions.length}+` : String(cachedTransactions.length);
+            document.getElementById("history-count").innerText = countLabel;
+
+            if (!filtered.length) {
+                const empty = cachedTransactions.length
+                    ? `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum resultado encontrado.</p>`
+                    : `<p class="text-slate-400 text-center py-4 font-medium text-[10px]">Nenhum lançamento neste mês.</p>`;
+                document.getElementById("transactions-list").innerHTML = empty;
+                return;
+            }
+
+            const BADGE = { income: 'bg-emerald-50 text-emerald-600', fixed: 'bg-rose-50 text-rose-600', invest: 'bg-sky-50 text-sky-600', free: 'bg-amber-50 text-amber-600' };
+            const LABEL = { income: 'Renda', fixed: 'Fixo', invest: 'Futuro', free: 'Livre' };
+            let html = "";
+            filtered.forEach(tx => {
+                const amt = parseFloat(tx.amount) || 0;
+                const isParc = tx.total_installments > 1 ? ` (${tx.current_installment}/${tx.total_installments})` : "";
+                const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : "";
+                const canDelete = tx.user_id === activeUser?.id;
+                html += `
+                    <div class="flex items-center justify-between p-2 border-b border-slate-50 group">
+                        <div class="min-w-0 flex-1">
+                            <span class="font-bold text-slate-700 block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}</span>
+                            <span class="text-[8px] font-bold px-1.5 py-0.5 rounded ${BADGE[tx.type] || ''}">${LABEL[tx.type] || tx.type}</span>
+                            <span class="text-[8px] text-slate-400 ml-1">${dateStr}</span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span class="font-black ${tx.type === 'income' ? 'text-emerald-500' : 'text-slate-600'}">${tx.type === 'income' ? '+' : '-'}${moneyBR(amt)}</span>
+                            ${canDelete ? `<button data-del-tx="${tx.id}" class="text-slate-200 hover:text-rose-400 p-1 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Remover"><i class="fa-solid fa-trash text-[10px]"></i></button>` : ''}
+                        </div>
+                    </div>`;
+            });
+            document.getElementById("transactions-list").innerHTML = html;
+        }
+
+        async function deleteTransaction(txId) {
+            if (!confirm("Remover este lançamento?\n\nEsta ação é irreversível.")) return;
+            const { error } = await supabase.from('transactions')
+                .delete().eq('id', txId).eq('user_id', activeUser?.id);
+            if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
+            showToast("Lançamento removido.");
+            fetchDashboardAndTransactions();
         }
 
         // ===================== CARTÕES / CONTAS =====================
@@ -933,7 +1071,7 @@
                             </div>
                             <span class="font-black text-purple-800 text-sm shrink-0">${moneyBR(remaining)}<span class="block text-[8px] text-slate-400 font-medium text-right">faltam</span></span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-500 to-indigo-500" style="width:${pct}%"></div></div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden"><div class="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500" style="width:${pct}%"></div></div>
                         <p class="text-[10px] leading-snug">${viab}</p>
                         ${contributed > 0 ? `<p class="text-[9px] text-slate-400">Já juntado: ${moneyBR(contributed)} (${pct}%)</p>` : ""}
                         <div class="flex flex-wrap gap-1.5 pt-0.5">${actions}</div>
@@ -955,9 +1093,12 @@
         }
 
         async function shareWish(wishId) {
+            const wish = cachedWishes.find(w => w.id === wishId);
+            const titulo = wish ? `"${wish.title}"` : 'este desejo';
+            if (!confirm(`Tornar ${titulo} compartilhado com seu grupo?\n\nTodos do grupo poderão ver e contribuir.`)) return;
             const { error } = await supabase.from('wishes').update({ scope: 'shared' }).eq('id', wishId);
             if (error) { showToast("Erro: " + error.message, "error"); return; }
-            showToast("Desejo agora é de vocês! 🏳️‍🌈");
+            showToast("Desejo agora é de vocês!");
             fetchWishes();
         }
 
@@ -1066,13 +1207,15 @@
         async function fetchAdminClients() {
             let profiles = [], subs = [];
             try {
-                const { data: p } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                const { data: p, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                if (pErr) console.error('fetchAdminClients profiles:', pErr.message);
                 profiles = p || [];
-            } catch (_) { profiles = []; }
+            } catch (e) { console.error('fetchAdminClients profiles exception:', e); profiles = []; }
             try {
-                const { data: s } = await supabase.from('subscriptions').select('*');
+                const { data: s, error: sErr } = await supabase.from('subscriptions').select('*');
+                if (sErr) console.error('fetchAdminClients subscriptions:', sErr.message);
                 subs = s || [];
-            } catch (_) { subs = []; }
+            } catch (e) { console.error('fetchAdminClients subscriptions exception:', e); subs = []; }
 
             const subByUser = {};
             subs.forEach(s => {
@@ -1080,11 +1223,16 @@
                 if (!cur || s.status === 'active' || new Date(s.created_at) > new Date(cur.created_at)) subByUser[s.user_id] = s;
             });
 
-            document.getElementById('adm-clients-count').innerText = profiles.length;
             const ACC = { individual: 'Individual', couple: 'Casal', throuple: 'Trisal' };
             const STT = { active: 'bg-emerald-100 text-emerald-700', pending: 'bg-amber-100 text-amber-700', paused: 'bg-slate-200 text-slate-600', cancelled: 'bg-rose-100 text-rose-700' };
 
-            document.getElementById('adm-clients-list').innerHTML = profiles.map(p => {
+            const admSearch = (document.getElementById('adm-client-search')?.value || '').toLowerCase().trim();
+            const visibleProfiles = admSearch
+                ? profiles.filter(p => (p.full_name || '').toLowerCase().includes(admSearch) || (p.email || '').toLowerCase().includes(admSearch))
+                : profiles;
+
+            document.getElementById('adm-clients-count').innerText = visibleProfiles.length + (admSearch ? ` / ${profiles.length}` : '');
+            document.getElementById('adm-clients-list').innerHTML = visibleProfiles.map(p => {
                 const s = subByUser[p.id];
                 const statusLabel = s ? s.status : 'sem plano';
                 const statusCls = s ? (STT[s.status] || 'bg-slate-100 text-slate-500') : 'bg-slate-100 text-slate-500';
@@ -1321,6 +1469,44 @@
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             checkAuth();
 
+            // ---- Navegação de mês ----
+            document.getElementById('btn-prev-month').addEventListener('click', () => {
+                viewMonth--;
+                if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+                fetchDashboardAndTransactions();
+            });
+            document.getElementById('btn-next-month').addEventListener('click', () => {
+                const now = new Date();
+                if (viewYear === now.getFullYear() && viewMonth === now.getMonth()) return;
+                viewMonth++;
+                if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+                fetchDashboardAndTransactions();
+            });
+
+            // ---- Filtros de tipo no extrato ----
+            document.querySelectorAll('.tx-filter-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeTxFilter = btn.dataset.txFilter;
+                    document.querySelectorAll('.tx-filter-pill').forEach(b => {
+                        const colors = { all: 'bg-slate-700 text-white', income: 'bg-emerald-50 text-emerald-700', fixed: 'bg-rose-50 text-rose-700', invest: 'bg-sky-50 text-sky-700', free: 'bg-amber-50 text-amber-700' };
+                        b.className = `tx-filter-pill text-[9px] font-bold px-2 py-1 rounded-lg ${colors[b.dataset.txFilter]}`;
+                        if (b.dataset.txFilter === activeTxFilter) {
+                            b.className += ' ring-2 ring-offset-1 ring-current';
+                        }
+                    });
+                    renderTransactions();
+                });
+            });
+
+            // ---- Busca no extrato ----
+            document.getElementById('tx-search').addEventListener('input', () => renderTransactions());
+
+            // ---- Deletar transação ----
+            document.getElementById('transactions-list').addEventListener('click', e => {
+                const btn = e.target.closest('[data-del-tx]');
+                if (btn) deleteTransaction(btn.dataset.delTx);
+            });
+
             // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
             document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
@@ -1351,13 +1537,17 @@
                 else showToast("Acesso ainda não liberado — confira com seu par.", "error");
             });
             document.getElementById('btn-plans-logout').addEventListener('click', async () => {
-                await supabase.auth.signOut(); activeUser = null; mySubscription = null; showScreen('screen-auth');
+                await supabase.auth.signOut();
+                activeUser = null; myGroupId = null; mySubscription = null; myProfile = null; isAdmin = false;
+                cachedWishes = []; cachedContribs = {}; cachedTransactions = [];
+                showScreen('screen-auth');
             });
 
             // ---- Painel admin ----
             document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
             document.getElementById('btn-admin-back').addEventListener('click', () => showScreen('screen-app'));
             document.getElementById('adm-nav-clients').addEventListener('click', () => { switchAdminTab('adm-panel-clients', 'adm-nav-clients'); fetchAdminClients(); });
+            document.getElementById('adm-client-search').addEventListener('input', () => fetchAdminClients());
             document.getElementById('adm-nav-prices').addEventListener('click', () => { switchAdminTab('adm-panel-prices', 'adm-nav-prices'); fetchAdminPrices(); });
             document.getElementById('adm-nav-mentorship').addEventListener('click', () => { switchAdminTab('adm-panel-mentorship', 'adm-nav-mentorship'); fetchAdminSlots(); });
             document.getElementById('btn-save-prices').addEventListener('click', saveAdminPrices);
@@ -1391,13 +1581,19 @@
                 const amount = parseFloat(document.getElementById('wish-amount').value);
                 const scope = document.getElementById('wish-scope').value;
                 if (!title || !(amount > 0)) { showToast("Preencha o desejo e um valor válido.", "error"); return; }
+                const wishBtn = e.target.querySelector('button[type="submit"]');
+                const wishBtnText = wishBtn.innerHTML;
+                wishBtn.disabled = true;
+                wishBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
                 const { error } = await supabase.rpc('create_wish', {
                     wish_title: title,
                     wish_amount: amount,
                     wish_scope: scope
                 });
+                wishBtn.disabled = false;
+                wishBtn.innerHTML = wishBtnText;
                 if (error) { showToast("Erro ao salvar desejo: " + error.message, "error"); return; }
-                showToast("Desejo adicionado! ⭐");
+                showToast("Desejo adicionado!");
                 document.getElementById('form-wish').reset();
                 fetchWishes();
             });
@@ -1471,6 +1667,7 @@
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
                 activeUser = null; myGroupId = null; mySubscription = null; myProfile = null; isAdmin = false;
+                cachedWishes = []; cachedContribs = {}; cachedTransactions = [];
                 showScreen("screen-auth");
                 showToast("Sessão encerrada.");
             });
@@ -1486,13 +1683,23 @@
 
                 if (!(totalAmount > 0)) { showToast("Informe um valor válido.", "error"); return; }
 
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
+
                 const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
                 const rows = [];
 
-                // Loop que gera uma transação por parcela, somando +1 mês a cada iteração.
+                // Data base calculada uma vez fora do loop para evitar drift de clock
+                // entre iterações e bug de overflow de mês (ex: 31/jan + 1 mês via setMonth).
+                const baseDate = new Date();
+                const baseYear = baseDate.getFullYear();
+                const baseMonth = baseDate.getMonth();
+                const baseDay = baseDate.getDate();
+
                 for (let i = 1; i <= installments; i++) {
-                    const dataParcela = new Date();
-                    dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+                    const dataParcela = new Date(baseYear, baseMonth + (i - 1), baseDay);
                     rows.push({
                         user_id: activeUser?.id,
                         group_id: myGroupId,
@@ -1507,6 +1714,8 @@
                 }
 
                 const { error } = await supabase.from('transactions').insert(rows);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
                 if (error) { showToast("Erro ao salvar: " + error.message, "error"); return; }
 
                 showToast(installments > 1 ? `Parcelamento em ${installments}x computado!` : "Lançamento efetuado!");
@@ -1519,18 +1728,26 @@
                 e.preventDefault();
                 const name = document.getElementById('card-name').value.trim();
                 const type = document.getElementById('card-type').value;
-
+                const cardBtn = e.target.querySelector('button[type="submit"]');
+                const cardBtnText = cardBtn.innerHTML;
+                cardBtn.disabled = true;
+                cardBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
                 const { error } = await supabase.from('cards').insert([{ user_id: activeUser?.id, name, type }]);
+                cardBtn.disabled = false;
+                cardBtn.innerHTML = cardBtnText;
                 if (error) { showToast("Erro ao salvar cartão: " + error.message, "error"); return; }
 
                 showToast("Cartão/Conta registrado!");
                 document.getElementById('form-card').reset();
-                fetchCards(); // atualiza o seletor de lançamentos na hora
+                fetchCards();
             });
             document.getElementById('cards-list').addEventListener('click', (e) => {
                 const del = e.target.closest('[data-del-card]');
                 if (del) deleteCardOrAccount(del.dataset.delCard);
             });
+
+            // ---- Cancelar assinatura ----
+            document.getElementById('btn-cancel-subscription').addEventListener('click', cancelSubscription);
 
             // ---- Copiar código de convite ----
             document.getElementById('btn-copy-invite').addEventListener('click', async () => {

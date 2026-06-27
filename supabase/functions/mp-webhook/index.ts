@@ -31,6 +31,9 @@ const STATUS_MAP: Record<string, string> = {
   paused: "paused",
   cancelled: "cancelled",
   pending: "pending",
+  // Chargebacks e disputas encerram o acesso imediatamente.
+  charged_back: "cancelled",
+  in_dispute: "cancelled",
 };
 
 Deno.serve(async (req) => {
