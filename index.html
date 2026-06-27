@@ -212,9 +212,14 @@
 
         <form id="form-onboarding" class="vr-card p-6 space-y-5">
             <!-- Renda -->
-            <div>
-                <label class="vr-label">Renda mensal (R$)</label>
-                <input type="number" step="0.01" min="0" id="onb-income" required placeholder="Ex: 6.500,00" class="vr-field font-semibold text-lg">
+            <div class="space-y-2">
+                <label class="vr-label !mb-0">Sua renda</label>
+                <div class="vr-seg" id="onb-income-kind">
+                    <button type="button" data-income-kind="salary" class="vr-seg-btn is-active">Salário (todo mês)</button>
+                    <button type="button" data-income-kind="variable" class="vr-seg-btn">Varia / autônomo</button>
+                </div>
+                <input type="number" step="0.01" min="0" id="onb-income" placeholder="Ex: 6.500,00" class="vr-field font-semibold text-lg">
+                <p id="onb-income-hint" class="text-xs text-muted">Renda fixa repete automaticamente todo mês. Você pode editar depois.</p>
             </div>
 
             <!-- Gastos fixos -->
@@ -329,42 +334,63 @@
                 <form id="form-transaction" class="space-y-3">
                     <div class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label class="vr-label">Pilar do plano</label>
+                            <label class="vr-label">Tipo de lançamento</label>
                             <select id="tx-type" class="vr-field">
-                                <option value="income">1. Renda (Entrada)</option>
-                                <option value="fixed" selected>2. Gasto Fixo (Saída)</option>
-                                <option value="invest">3. Futuro/Invest. (Saída)</option>
-                                <option value="free">4. Gasto Livre (Saída)</option>
+                                <optgroup label="Entradas">
+                                    <option value="salary">Salário / Renda fixa (todo mês)</option>
+                                    <option value="income">Entrada avulsa</option>
+                                </optgroup>
+                                <optgroup label="Saídas">
+                                    <option value="fixed" selected>Gasto fixo (todo mês)</option>
+                                    <option value="invest">Futuro / Investimento</option>
+                                    <option value="free">Gasto livre</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div>
-                            <label class="vr-label">Valor total (R$)</label>
+                            <label class="vr-label" id="tx-amount-label">Valor (R$)</label>
                             <input type="number" step="0.01" min="0" id="tx-amount" required placeholder="0,00" class="vr-field font-semibold">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2.5">
+
+                    <!-- Recorrência: aviso para tipos "todo mês" -->
+                    <p id="tx-recurring-hint" class="hidden text-xs text-brand bg-brand-soft rounded-xl px-3 py-2 font-medium"><i class="fa-solid fa-rotate mr-1"></i> Este lançamento se repete automaticamente todos os meses.</p>
+
+                    <!-- Cartão (só compras pontuais) -->
+                    <div id="tx-card-group">
+                        <label class="vr-label">Origem / Cartão</label>
+                        <select id="tx-card" class="vr-field">
+                            <option value="">Dinheiro / Pix à vista</option>
+                        </select>
+                    </div>
+
+                    <!-- Parcelamento (só saídas pontuais) -->
+                    <div id="tx-installments-group" class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label class="vr-label">Origem / Cartão</label>
-                            <select id="tx-card" class="vr-field">
-                                <option value="">Dinheiro / Pix à vista</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="vr-label">Parcelamento</label>
+                            <label class="vr-label">Parcelas (total)</label>
                             <select id="tx-installments" class="vr-field">
                                 <option value="1">À Vista (1x)</option>
                                 <option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
                                 <option value="5">5x</option><option value="6">6x</option><option value="7">7x</option>
                                 <option value="8">8x</option><option value="9">9x</option><option value="10">10x</option>
                                 <option value="11">11x</option><option value="12">12x</option>
+                                <option value="18">18x</option><option value="24">24x</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="vr-label">Parcela atual</label>
+                            <select id="tx-current-installment" class="vr-field">
+                                <option value="1">1ª</option>
                             </select>
                         </div>
                     </div>
+                    <p id="tx-installments-hint" class="hidden text-xs text-muted -mt-1">Já tem um parcelamento em andamento? Informe o total e em qual parcela você está — lançamos só as restantes.</p>
+
                     <div>
                         <label class="vr-label">Descrição / Estabelecimento</label>
-                        <input type="text" id="tx-description" required placeholder="Ex: Notebook, Aluguel, Almoço..." class="vr-field">
+                        <input type="text" id="tx-description" required placeholder="Ex: Notebook, Aluguel, Salário..." class="vr-field">
                     </div>
-                    <button type="submit" class="vr-btn vr-btn-spectrum">Registrar movimentação</button>
+                    <button type="submit" class="vr-btn vr-btn-spectrum">Registrar lançamento</button>
                 </form>
 
                 <!-- EXTRATO -->
@@ -610,6 +636,29 @@
         </div>
     </div>
 
+    <!-- MODAL: editar lançamento recorrente -->
+    <div id="modal-edit-rec" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 backdrop-blur-sm px-6">
+        <form id="form-edit-rec" class="vr-card p-6 w-full max-w-xs space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center mx-auto mb-2"><i class="fa-solid fa-pen text-base"></i></div>
+                <h3 class="font-display font-bold text-lg" id="modal-edit-rec-title">Editar recorrente</h3>
+            </div>
+            <div>
+                <label class="vr-label">Descrição</label>
+                <input type="text" id="edit-rec-desc" required class="vr-field">
+            </div>
+            <div>
+                <label class="vr-label">Valor (R$)</label>
+                <input type="number" step="0.01" min="0" id="edit-rec-amount" required class="vr-field font-semibold">
+            </div>
+            <p class="text-xs text-muted">A alteração vale para este mês e os próximos.</p>
+            <div class="space-y-2">
+                <button type="submit" class="vr-btn vr-btn-spectrum">Salvar</button>
+                <button type="button" id="modal-edit-rec-cancel" class="w-full text-xs text-muted font-medium pt-1">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
     <!-- TOASTS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
@@ -682,6 +731,29 @@
             document.getElementById(tabId).classList.remove('hidden');
             document.querySelectorAll('[id^="nav-btn-"]').forEach(b => b.classList.remove('is-active'));
             document.getElementById(btnId).classList.add('is-active');
+        }
+
+        // Mostra/esconde campos do formulário de lançamento conforme o tipo escolhido.
+        function updateTxFormFields() {
+            const type = document.getElementById('tx-type').value;
+            const isRecurring = (type === 'salary' || type === 'fixed');
+            const isPunctualExpense = (type === 'invest' || type === 'free');
+            const installments = parseInt(document.getElementById('tx-installments').value, 10) || 1;
+
+            document.getElementById('tx-recurring-hint').classList.toggle('hidden', !isRecurring);
+            document.getElementById('tx-card-group').classList.toggle('hidden', isRecurring);
+            document.getElementById('tx-installments-group').classList.toggle('hidden', !isPunctualExpense);
+            document.getElementById('tx-installments-hint').classList.toggle('hidden', !(isPunctualExpense && installments > 1));
+            document.getElementById('tx-amount-label').innerText =
+                (isPunctualExpense && installments > 1) ? 'Valor total (R$)' : 'Valor (R$)';
+
+            // Opções de "parcela atual" (1..total), preservando a seleção quando possível.
+            const cur = document.getElementById('tx-current-installment');
+            const prev = parseInt(cur.value, 10) || 1;
+            let opts = '';
+            for (let i = 1; i <= installments; i++) opts += `<option value="${i}">${i}ª${installments > 1 ? ` de ${installments}` : ''}</option>`;
+            cur.innerHTML = opts;
+            cur.value = String(Math.min(prev, installments));
         }
 
         // Máscara de WhatsApp (XX) XXXXX-XXXX
@@ -952,6 +1024,17 @@
 
         // ===================== CADASTRO INICIAL (ONBOARDING) =====================
         const ONB_DEFAULT_FIXED = ['Aluguel / Moradia', 'Energia / Água', 'Internet / Telefone'];
+        let onbIncomeKind = 'salary'; // 'salary' (recorrente) | 'variable' (pontual)
+
+        function setOnbIncomeKind(kind) {
+            onbIncomeKind = kind;
+            document.querySelectorAll('#onb-income-kind [data-income-kind]').forEach(b => {
+                b.classList.toggle('is-active', b.dataset.incomeKind === kind);
+            });
+            document.getElementById('onb-income-hint').innerText = kind === 'salary'
+                ? 'Renda fixa repete automaticamente todo mês. Você pode editar depois.'
+                : 'Renda variável entra só neste mês — você lança as próximas quando receber.';
+        }
 
         function addOnbFixedRow(desc = '', amount = '') {
             const box = document.getElementById('onb-fixed-rows');
@@ -972,6 +1055,7 @@
 
         function initOnboarding() {
             document.getElementById('form-onboarding').reset();
+            setOnbIncomeKind('salary');
             const box = document.getElementById('onb-fixed-rows');
             box.innerHTML = '';
             ONB_DEFAULT_FIXED.forEach(label => addOnbFixedRow(label, ''));
@@ -1011,11 +1095,12 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
 
             const nowIso = new Date().toISOString();
+            const startYm = ymOf(viewYear, viewMonth);
             const base = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
 
-            // Renda e meta de investimento entram como lançamento do mês atual.
+            // Lançamentos pontuais do mês: meta de investimento, e renda se for variável.
             const rows = [];
-            if (income > 0) rows.push({ ...base, type: 'income', amount: income, description: 'Renda mensal' });
+            if (income > 0 && onbIncomeKind === 'variable') rows.push({ ...base, type: 'income', amount: income, description: 'Renda do mês' });
             if (invest > 0) rows.push({ ...base, type: 'invest', amount: invest, description: 'Meta de investimento' });
 
             if (rows.length) {
@@ -1023,15 +1108,18 @@
                 if (error) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar: ' + error.message, 'error'); return; }
             }
 
-            // Gastos fixos viram recorrentes (repetem mês a mês) a partir deste mês.
-            if (fixed.length) {
-                const startYm = ymOf(viewYear, viewMonth);
-                const recRows = fixed.map(r => ({
-                    user_id: activeUser?.id, group_id: myGroupId,
-                    description: r.description || 'Gasto fixo', amount: r.amount, start_ym: startYm
-                }));
+            // Recorrentes (repetem mês a mês): salário fixo + gastos fixos.
+            const recRows = [];
+            if (income > 0 && onbIncomeKind === 'salary') {
+                recRows.push({ user_id: activeUser?.id, group_id: myGroupId, type: 'income', description: 'Salário', amount: income, start_ym: startYm });
+            }
+            fixed.forEach(r => recRows.push({
+                user_id: activeUser?.id, group_id: myGroupId, type: 'fixed',
+                description: r.description || 'Gasto fixo', amount: r.amount, start_ym: startYm
+            }));
+            if (recRows.length) {
                 const { error: recErr } = await supabase.from('recurring_fixed').insert(recRows);
-                if (recErr) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar gastos fixos: ' + recErr.message, 'error'); return; }
+                if (recErr) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar recorrentes: ' + recErr.message, 'error'); return; }
             }
 
             btn.disabled = false;
@@ -1092,7 +1180,7 @@
                 .map(t => ({
                     id: `rec:${t.id}:${ym}`,
                     recurring: true, recurring_id: t.id, recurring_ym: ym,
-                    type: 'fixed', amount: Number(t.amount) || 0,
+                    type: t.type === 'income' ? 'income' : 'fixed', amount: Number(t.amount) || 0,
                     description: t.description, user_id: t.user_id, group_id: t.group_id,
                     total_installments: 1, current_installment: 1,
                     created_at: monthStartIso
@@ -1180,6 +1268,7 @@
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
                             <span class="font-display font-semibold ${tx.type === 'income' ? 'text-emerald-600' : 'text-ink'}">${tx.type === 'income' ? '+' : '−'}${moneyBR(amt)}</span>
+                            ${tx.recurring ? `<button data-edit-rec="${tx.recurring_id}" class="text-line hover:text-brand p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
                             ${canDelete ? `<button data-del-tx="${tx.id}" class="text-line hover:text-rose-400 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Remover"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
                         </div>
                     </div>`;
@@ -1239,8 +1328,58 @@
             }
 
             if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-            showToast(mode === 'month' ? 'Gasto fixo removido só neste mês.' : 'Gasto fixo encerrado.');
+            showToast(mode === 'month' ? 'Removido só neste mês.' : 'Recorrência encerrada.');
             closeRecurringModal();
+            fetchDashboardAndTransactions();
+        }
+
+        // ----- Edição de lançamento recorrente (renda fixa / gasto fixo) -----
+        let pendingEditRec = null;
+
+        function openEditRecurringModal(recId) {
+            const t = cachedRecurring.find(r => r.id === recId);
+            if (!t) return;
+            pendingEditRec = recId;
+            document.getElementById('modal-edit-rec-title').innerText = t.type === 'income' ? 'Editar renda fixa' : 'Editar gasto fixo';
+            document.getElementById('edit-rec-desc').value = t.description || '';
+            document.getElementById('edit-rec-amount').value = Number(t.amount) || 0;
+            const m = document.getElementById('modal-edit-rec');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+
+        function closeEditRecurringModal() {
+            const m = document.getElementById('modal-edit-rec');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            pendingEditRec = null;
+        }
+
+        async function saveEditRecurring() {
+            if (!pendingEditRec) return;
+            const t = cachedRecurring.find(r => r.id === pendingEditRec);
+            if (!t) { closeEditRecurringModal(); return; }
+            const desc = document.getElementById('edit-rec-desc').value.trim();
+            const amount = parseFloat(document.getElementById('edit-rec-amount').value);
+            if (!desc || !(amount >= 0)) { showToast('Preencha descrição e valor.', 'error'); return; }
+
+            const ym = ymOf(viewYear, viewMonth);
+            let error = null;
+            if (t.start_ym >= ym) {
+                // Ainda não gerou meses anteriores → edita o template direto.
+                ({ error } = await supabase.from('recurring_fixed').update({ description: desc, amount }).eq('id', t.id));
+            } else {
+                // Preserva o histórico: encerra o antigo no mês anterior e abre um novo daqui pra frente.
+                ({ error } = await supabase.from('recurring_fixed').update({ end_ym: prevYm(ym) }).eq('id', t.id));
+                if (!error) {
+                    const futureSkips = (t.skip_yms || []).filter(s => s >= ym);
+                    ({ error } = await supabase.from('recurring_fixed').insert([{
+                        user_id: activeUser?.id, group_id: t.group_id, type: t.type || 'fixed',
+                        description: desc, amount, start_ym: ym, skip_yms: futureSkips
+                    }]));
+                }
+            }
+            if (error) { showToast('Erro ao editar: ' + error.message, 'error'); return; }
+            showToast('Recorrência atualizada.');
+            closeEditRecurringModal();
             fetchDashboardAndTransactions();
         }
 
@@ -1841,6 +1980,8 @@
 
             // ---- Deletar transação ----
             document.getElementById('transactions-list').addEventListener('click', e => {
+                const edit = e.target.closest('[data-edit-rec]');
+                if (edit) { openEditRecurringModal(edit.dataset.editRec); return; }
                 const btn = e.target.closest('[data-del-tx]');
                 if (!btn) return;
                 const id = btn.dataset.delTx;
@@ -1848,13 +1989,20 @@
                 else deleteTransaction(id);
             });
 
-            // ---- Modal de exclusão de gasto fixo recorrente ----
+            // ---- Modal de exclusão de recorrente ----
             document.getElementById('modal-rec-cancel').addEventListener('click', closeRecurringModal);
             document.getElementById('modal-recurring').addEventListener('click', (e) => {
                 if (e.target.id === 'modal-recurring') closeRecurringModal();
             });
             document.getElementById('modal-rec-month').addEventListener('click', () => resolveRecurringDelete('month'));
             document.getElementById('modal-rec-forever').addEventListener('click', () => resolveRecurringDelete('forever'));
+
+            // ---- Modal de edição de recorrente ----
+            document.getElementById('modal-edit-rec-cancel').addEventListener('click', closeEditRecurringModal);
+            document.getElementById('modal-edit-rec').addEventListener('click', (e) => {
+                if (e.target.id === 'modal-edit-rec') closeEditRecurringModal();
+            });
+            document.getElementById('form-edit-rec').addEventListener('submit', (e) => { e.preventDefault(); saveEditRecurring(); });
 
             // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
@@ -1893,6 +2041,9 @@
             });
 
             // ---- Cadastro inicial (onboarding) ----
+            document.querySelectorAll('#onb-income-kind [data-income-kind]').forEach(b => {
+                b.addEventListener('click', () => setOnbIncomeKind(b.dataset.incomeKind));
+            });
             document.getElementById('btn-onb-add-fixed').addEventListener('click', () => { addOnbFixedRow(); });
             document.getElementById('onb-fixed-rows').addEventListener('click', (e) => {
                 const del = e.target.closest('.onb-fixed-del');
@@ -2031,15 +2182,16 @@
                 showToast("Sessão encerrada.");
             });
 
-            // ---- Lançamento + Motor de Parcelamento Automático ----
+            // ---- Lançamento (recorrente, avulso ou parcelado) ----
+            document.getElementById('tx-type').addEventListener('change', updateTxFormFields);
+            document.getElementById('tx-installments').addEventListener('change', updateTxFormFields);
+            updateTxFormFields();
+
             document.getElementById('form-transaction').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const type = document.getElementById('tx-type').value;
                 const totalAmount = parseFloat(document.getElementById('tx-amount').value);
-                const card_id = document.getElementById('tx-card').value || null;
-                const installments = parseInt(document.getElementById('tx-installments').value, 10);
                 const description = document.getElementById('tx-description').value.trim();
-
                 if (!(totalAmount > 0)) { showToast("Informe um valor válido.", "error"); return; }
 
                 const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -2047,38 +2199,46 @@
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
 
-                const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
-                const rows = [];
+                let error = null;
 
-                // Data base calculada uma vez fora do loop para evitar drift de clock
-                // entre iterações e bug de overflow de mês (ex: 31/jan + 1 mês via setMonth).
-                const baseDate = new Date();
-                const baseYear = baseDate.getFullYear();
-                const baseMonth = baseDate.getMonth();
-                const baseDay = baseDate.getDate();
+                if (type === 'salary' || type === 'fixed') {
+                    // Recorrente: grava um template (renda fixa ou gasto fixo) a partir do mês visto.
+                    ({ error } = await supabase.from('recurring_fixed').insert([{
+                        user_id: activeUser?.id, group_id: myGroupId,
+                        type: type === 'salary' ? 'income' : 'fixed',
+                        description: description || (type === 'salary' ? 'Salário' : 'Gasto fixo'),
+                        amount: totalAmount, start_ym: ymOf(viewYear, viewMonth)
+                    }]));
+                } else {
+                    // Pontual: entrada avulsa, investimento ou gasto livre — com parcelamento opcional.
+                    const card_id = document.getElementById('tx-card').value || null;
+                    const installments = parseInt(document.getElementById('tx-installments').value, 10) || 1;
+                    const current = parseInt(document.getElementById('tx-current-installment').value, 10) || 1;
+                    const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
+                    const rows = [];
+                    const baseDate = new Date();
+                    const baseYear = baseDate.getFullYear(), baseMonth = baseDate.getMonth(), baseDay = baseDate.getDate();
 
-                for (let i = 1; i <= installments; i++) {
-                    const dataParcela = new Date(baseYear, baseMonth + (i - 1), baseDay);
-                    rows.push({
-                        user_id: activeUser?.id,
-                        group_id: myGroupId,
-                        type,
-                        amount: valorParcela,
-                        description,
-                        card_id,
-                        current_installment: i,
-                        total_installments: installments,
-                        created_at: dataParcela.toISOString()
-                    });
+                    // Lança da parcela atual até a última; a atual cai neste mês.
+                    for (let i = current; i <= installments; i++) {
+                        const dataParcela = new Date(baseYear, baseMonth + (i - current), baseDay);
+                        rows.push({
+                            user_id: activeUser?.id, group_id: myGroupId, type,
+                            amount: valorParcela, description, card_id,
+                            current_installment: i, total_installments: installments,
+                            created_at: dataParcela.toISOString()
+                        });
+                    }
+                    ({ error } = await supabase.from('transactions').insert(rows));
                 }
 
-                const { error } = await supabase.from('transactions').insert(rows);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
                 if (error) { showToast("Erro ao salvar: " + error.message, "error"); return; }
 
-                showToast(installments > 1 ? `Parcelamento em ${installments}x computado!` : "Lançamento efetuado!");
+                showToast(type === 'salary' || type === 'fixed' ? "Recorrência criada — repete todo mês!" : "Lançamento efetuado!");
                 document.getElementById('form-transaction').reset();
+                updateTxFormFields();
                 fetchDashboardAndTransactions();
             });
 
