@@ -201,6 +201,48 @@
         <button id="btn-plans-logout" type="button" class="text-center text-xs text-muted font-medium">Sair desta conta</button>
     </section>
 
+    <!-- ===================== CADASTRO INICIAL (ONBOARDING) ===================== -->
+    <section id="screen-onboarding" class="screen max-w-sm w-full mx-auto px-6 py-10 min-h-screen flex flex-col justify-center space-y-5">
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <h1 class="font-display font-bold text-2xl tracking-tight">Vamos montar seu mês</h1>
+            <p class="text-sm text-muted leading-snug">Cadastre sua renda e seus gastos fixos. Você pode editar tudo depois — isso é só pra começar com o dashboard preenchido.</p>
+        </div>
+
+        <form id="form-onboarding" class="vr-card p-6 space-y-5">
+            <!-- Renda -->
+            <div>
+                <label class="vr-label">Renda mensal (R$)</label>
+                <input type="number" step="0.01" min="0" id="onb-income" required placeholder="Ex: 6.500,00" class="vr-field font-semibold text-lg">
+            </div>
+
+            <!-- Gastos fixos -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="vr-label !mb-0">Gastos fixos mensais</label>
+                    <button type="button" id="btn-onb-add-fixed" class="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-lg"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                </div>
+                <div id="onb-fixed-rows" class="space-y-2"></div>
+                <p class="text-xs text-muted">Aluguel, energia, internet, assinaturas... o que repete todo mês.</p>
+            </div>
+
+            <!-- Meta de investimento -->
+            <div>
+                <label class="vr-label">Quanto quer guardar/investir por mês? <span class="text-muted/70 font-normal">(opcional)</span></label>
+                <input type="number" step="0.01" min="0" id="onb-invest" placeholder="Ex: 1.000,00" class="vr-field font-semibold">
+            </div>
+
+            <!-- Prévia da sobra -->
+            <div class="bg-canvas border border-line rounded-2xl p-3.5 flex items-center justify-between">
+                <span class="text-sm text-muted">Sobra estimada / mês</span>
+                <span id="onb-surplus" class="font-display font-bold text-lg text-ink">R$ 0,00</span>
+            </div>
+
+            <button type="submit" class="vr-btn vr-btn-spectrum">Concluir e ver meu painel</button>
+            <button type="button" id="btn-onb-skip" class="w-full text-xs text-muted font-medium">Pular por agora</button>
+        </form>
+    </section>
+
     <!-- ===================== ÁREA LOGADA ===================== -->
     <div id="screen-app" class="screen">
         <!-- HEADER — claro e minimalista -->
@@ -735,13 +777,38 @@
         }
 
         // Decide o que mostrar e carrega os dados do app já liberado.
-        function enterApp() {
+        async function enterApp() {
             const hasMentorship = isAdmin ||
                 (mySubscription && mySubscription.with_mentorship && mySubscription.status === 'active');
             document.getElementById("nav-btn-mentorship").classList.toggle("hidden", !hasMentorship);
             switchTab('panel-launch', 'nav-btn-launch');
+
+            // Primeiro acesso sem nenhum lançamento → cadastro inicial.
+            if (await groupHasNoTransactions()) {
+                initOnboarding();
+                showScreen("screen-onboarding");
+                return;
+            }
+            openAppData();
+        }
+
+        // Entra direto no painel (após onboarding concluído/pulado, ou quando já há dados).
+        function openAppData() {
             showScreen("screen-app");
             loadAppData();
+        }
+
+        // Verifica se o grupo ainda não tem nenhuma transação registrada.
+        async function groupHasNoTransactions() {
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { count, error } = await supabase
+                    .from('transactions')
+                    .select('id', { count: 'exact', head: true })
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`);
+                if (error) return false; // na dúvida, não bloqueia o acesso ao painel
+                return (count || 0) === 0;
+            } catch (_) { return false; }
         }
 
         function loadAppData() {
@@ -845,6 +912,82 @@
             } finally {
                 if (btn) { btn.disabled = false; btn.textContent = 'Cancelar minha assinatura'; }
             }
+        }
+
+        // ===================== CADASTRO INICIAL (ONBOARDING) =====================
+        const ONB_DEFAULT_FIXED = ['Aluguel / Moradia', 'Energia / Água', 'Internet / Telefone'];
+
+        function addOnbFixedRow(desc = '', amount = '') {
+            const box = document.getElementById('onb-fixed-rows');
+            const row = document.createElement('div');
+            row.className = 'onb-fixed-row flex items-center gap-2';
+            const d = document.createElement('input');
+            d.type = 'text'; d.className = 'onb-fixed-desc vr-field flex-1'; d.placeholder = 'Descrição';
+            d.value = desc;
+            const a = document.createElement('input');
+            a.type = 'number'; a.step = '0.01'; a.min = '0'; a.className = 'onb-fixed-amount vr-field w-28 font-semibold';
+            a.placeholder = '0,00'; a.value = amount;
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'onb-fixed-del text-muted hover:text-rose-500 p-2 shrink-0';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            row.append(d, a, btn);
+            box.appendChild(row);
+        }
+
+        function initOnboarding() {
+            document.getElementById('form-onboarding').reset();
+            const box = document.getElementById('onb-fixed-rows');
+            box.innerHTML = '';
+            ONB_DEFAULT_FIXED.forEach(label => addOnbFixedRow(label, ''));
+            updateOnbSurplus();
+        }
+
+        function onbCollectFixed() {
+            return Array.from(document.querySelectorAll('.onb-fixed-row')).map(row => ({
+                description: (row.querySelector('.onb-fixed-desc')?.value || '').trim(),
+                amount: parseFloat(row.querySelector('.onb-fixed-amount')?.value) || 0
+            })).filter(r => r.amount > 0);
+        }
+
+        function updateOnbSurplus() {
+            const income = parseFloat(document.getElementById('onb-income')?.value) || 0;
+            const invest = parseFloat(document.getElementById('onb-invest')?.value) || 0;
+            const fixedTotal = onbCollectFixed().reduce((s, r) => s + r.amount, 0);
+            const surplus = income - fixedTotal - invest;
+            const el = document.getElementById('onb-surplus');
+            el.innerText = moneyBR(surplus);
+            el.className = `font-display font-bold text-lg ${surplus > 0 ? 'text-emerald-600' : surplus < 0 ? 'text-rose-500' : 'text-ink'}`;
+        }
+
+        async function submitOnboarding() {
+            const income = parseFloat(document.getElementById('onb-income').value) || 0;
+            const invest = parseFloat(document.getElementById('onb-invest').value) || 0;
+            const fixed = onbCollectFixed();
+
+            if (!(income > 0) && !fixed.length && !(invest > 0)) {
+                showToast('Informe ao menos sua renda para começar.', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('#form-onboarding button[type="submit"]');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
+
+            const nowIso = new Date().toISOString();
+            const base = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
+            const rows = [];
+            if (income > 0) rows.push({ ...base, type: 'income', amount: income, description: 'Renda mensal' });
+            fixed.forEach(r => rows.push({ ...base, type: 'fixed', amount: r.amount, description: r.description || 'Gasto fixo' }));
+            if (invest > 0) rows.push({ ...base, type: 'invest', amount: invest, description: 'Meta de investimento' });
+
+            const { error } = await supabase.from('transactions').insert(rows);
+            btn.disabled = false;
+            btn.innerHTML = original;
+            if (error) { showToast('Erro ao salvar cadastro inicial: ' + error.message, 'error'); return; }
+
+            showToast('Tudo pronto! Bem-vindo(a) à sua Vida Rica. ✨');
+            openAppData();
         }
 
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
@@ -1611,6 +1754,16 @@
                 cachedWishes = []; cachedContribs = {}; cachedTransactions = [];
                 showScreen('screen-auth');
             });
+
+            // ---- Cadastro inicial (onboarding) ----
+            document.getElementById('btn-onb-add-fixed').addEventListener('click', () => { addOnbFixedRow(); });
+            document.getElementById('onb-fixed-rows').addEventListener('click', (e) => {
+                const del = e.target.closest('.onb-fixed-del');
+                if (del) { del.closest('.onb-fixed-row')?.remove(); updateOnbSurplus(); }
+            });
+            document.getElementById('form-onboarding').addEventListener('input', updateOnbSurplus);
+            document.getElementById('form-onboarding').addEventListener('submit', (e) => { e.preventDefault(); submitOnboarding(); });
+            document.getElementById('btn-onb-skip').addEventListener('click', () => openAppData());
 
             // ---- Painel admin ----
             document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
