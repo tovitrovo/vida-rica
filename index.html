@@ -73,6 +73,7 @@
         .vr-btn:active { transform: scale(.985); }
         .vr-btn-spectrum { background: var(--spectrum); box-shadow: 0 12px 30px -14px rgba(155,107,255,.7); }
         .vr-btn-ghost { background:#fff; color:#1a1626; border:1px solid var(--line); }
+        .vr-btn-danger { background:#f43f5e; box-shadow:0 10px 24px -14px rgba(244,63,94,.7); }
 
         /* Segmented control (abas) */
         .vr-seg { display:flex; gap:.25rem; padding:.3rem; background:#efecf5; border-radius:1rem; }
@@ -592,6 +593,23 @@
         </main>
     </div>
 
+    <!-- MODAL: excluir gasto fixo recorrente -->
+    <div id="modal-recurring" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 backdrop-blur-sm px-6">
+        <div class="vr-card p-6 w-full max-w-xs space-y-4 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center mx-auto"><i class="fa-solid fa-rotate text-lg"></i></div>
+            <div>
+                <h3 class="font-display font-bold text-lg">Gasto fixo recorrente</h3>
+                <p id="modal-recurring-desc" class="text-sm text-muted mt-1"></p>
+                <p class="text-xs text-muted mt-2">Como você quer excluir?</p>
+            </div>
+            <div class="space-y-2">
+                <button id="modal-rec-month" class="vr-btn vr-btn-ghost">Só neste mês</button>
+                <button id="modal-rec-forever" class="vr-btn vr-btn-danger">Remover o gasto fixo</button>
+                <button id="modal-rec-cancel" class="w-full text-xs text-muted font-medium pt-1">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOASTS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
@@ -620,10 +638,19 @@
 
         // Cache de transações para filtro/busca client-side
         let cachedTransactions = [];
+        let cachedRecurring = [];   // templates de gastos fixos recorrentes do grupo
         let activeTxFilter = 'all';
 
         // ===================== UTILITÁRIOS =====================
         const moneyBR = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+
+        // Helpers de competência mensal ('YYYY-MM') para gastos fixos recorrentes.
+        const ymOf = (y, m) => `${y}-${String(m + 1).padStart(2, '0')}`;
+        const prevYm = (ym) => {
+            const [y, m] = ym.split('-').map(Number);
+            const d = new Date(y, m - 2, 1);
+            return ymOf(d.getFullYear(), d.getMonth());
+        };
 
         // Escapa texto vindo do usuário/banco antes de inserir via innerHTML (anti-XSS)
         const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -798,16 +825,25 @@
             loadAppData();
         }
 
-        // Verifica se o grupo ainda não tem nenhuma transação registrada.
+        // Verifica se o grupo ainda não tem nenhum dado (transações nem gastos fixos).
         async function groupHasNoTransactions() {
             const searchId = myGroupId || activeUser?.id;
+            const filter = `user_id.eq.${searchId},group_id.eq.${searchId}`;
             try {
-                const { count, error } = await supabase
+                const tx = await supabase
                     .from('transactions')
                     .select('id', { count: 'exact', head: true })
-                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`);
-                if (error) return false; // na dúvida, não bloqueia o acesso ao painel
-                return (count || 0) === 0;
+                    .or(filter);
+                if (tx.error) return false; // na dúvida, não bloqueia o acesso ao painel
+                if ((tx.count || 0) > 0) return false;
+
+                // Sem transações: confere também os gastos fixos recorrentes.
+                const rec = await supabase
+                    .from('recurring_fixed')
+                    .select('id', { count: 'exact', head: true })
+                    .or(filter);
+                if (rec.error) return true; // tabela pode não existir ainda → trata como vazio
+                return (rec.count || 0) === 0;
             } catch (_) { return false; }
         }
 
@@ -976,16 +1012,30 @@
 
             const nowIso = new Date().toISOString();
             const base = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
+
+            // Renda e meta de investimento entram como lançamento do mês atual.
             const rows = [];
             if (income > 0) rows.push({ ...base, type: 'income', amount: income, description: 'Renda mensal' });
-            fixed.forEach(r => rows.push({ ...base, type: 'fixed', amount: r.amount, description: r.description || 'Gasto fixo' }));
             if (invest > 0) rows.push({ ...base, type: 'invest', amount: invest, description: 'Meta de investimento' });
 
-            const { error } = await supabase.from('transactions').insert(rows);
+            if (rows.length) {
+                const { error } = await supabase.from('transactions').insert(rows);
+                if (error) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar: ' + error.message, 'error'); return; }
+            }
+
+            // Gastos fixos viram recorrentes (repetem mês a mês) a partir deste mês.
+            if (fixed.length) {
+                const startYm = ymOf(viewYear, viewMonth);
+                const recRows = fixed.map(r => ({
+                    user_id: activeUser?.id, group_id: myGroupId,
+                    description: r.description || 'Gasto fixo', amount: r.amount, start_ym: startYm
+                }));
+                const { error: recErr } = await supabase.from('recurring_fixed').insert(recRows);
+                if (recErr) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar gastos fixos: ' + recErr.message, 'error'); return; }
+            }
+
             btn.disabled = false;
             btn.innerHTML = original;
-            if (error) { showToast('Erro ao salvar cadastro inicial: ' + error.message, 'error'); return; }
-
             showToast('Tudo pronto! Bem-vindo(a) à sua Vida Rica. ✨');
             openAppData();
         }
@@ -1022,6 +1072,33 @@
                     .limit(TX_PAGE_SIZE);
                 txs = data || [];
             } catch (_) { txs = []; }
+
+            // Gastos fixos recorrentes → vira lançamento "virtual" do mês visualizado.
+            const ym = ymOf(viewYear, viewMonth);
+            try {
+                const { data, error } = await supabase
+                    .from('recurring_fixed')
+                    .select('*')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`);
+                cachedRecurring = error ? [] : (data || []);
+            } catch (_) { cachedRecurring = []; }
+
+            const monthStartIso = new Date(viewYear, viewMonth, 1).toISOString();
+            const virtualFixed = cachedRecurring
+                .filter(t => t.active !== false
+                    && t.start_ym <= ym
+                    && (!t.end_ym || ym <= t.end_ym)
+                    && !(t.skip_yms || []).includes(ym))
+                .map(t => ({
+                    id: `rec:${t.id}:${ym}`,
+                    recurring: true, recurring_id: t.id, recurring_ym: ym,
+                    type: 'fixed', amount: Number(t.amount) || 0,
+                    description: t.description, user_id: t.user_id, group_id: t.group_id,
+                    total_installments: 1, current_installment: 1,
+                    created_at: monthStartIso
+                }));
+
+            txs = txs.concat(virtualFixed).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             cachedTransactions = txs;
 
@@ -1089,15 +1166,16 @@
                 const amt = parseFloat(tx.amount) || 0;
                 const isParc = tx.total_installments > 1 ? ` (${tx.current_installment}/${tx.total_installments})` : "";
                 const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : "";
-                const canDelete = tx.user_id === activeUser?.id;
+                const canDelete = tx.recurring || tx.user_id === activeUser?.id;
+                const recIcon = tx.recurring ? `<i class="fa-solid fa-rotate text-muted text-[10px] ml-1" title="Gasto fixo recorrente"></i>` : '';
                 html += `
                     <div class="flex items-center gap-3 py-2.5 px-1 border-b border-line/70 group">
                         <span class="w-2 h-2 rounded-full shrink-0 ${DOT[tx.type] || 'bg-muted'}"></span>
                         <div class="min-w-0 flex-1">
-                            <span class="font-semibold text-ink block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}</span>
+                            <span class="font-semibold text-ink block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}${recIcon}</span>
                             <div class="flex items-center gap-1.5 mt-0.5">
                                 <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded ${BADGE[tx.type] || ''}">${LABEL[tx.type] || tx.type}</span>
-                                <span class="text-[11px] text-muted">${dateStr}</span>
+                                <span class="text-[11px] text-muted">${tx.recurring ? 'Todo mês' : dateStr}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 shrink-0">
@@ -1115,6 +1193,54 @@
                 .delete().eq('id', txId).eq('user_id', activeUser?.id);
             if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
             showToast("Lançamento removido.");
+            fetchDashboardAndTransactions();
+        }
+
+        // ----- Exclusão de gasto fixo recorrente (só este mês × de vez) -----
+        let pendingRecurring = null;
+
+        function openRecurringDeleteModal(virtualId) {
+            // formato: rec:<uuid>:<YYYY-MM>
+            const parts = virtualId.split(':');
+            const recId = parts[1];
+            const ym = parts[2];
+            const t = cachedRecurring.find(r => r.id === recId);
+            pendingRecurring = { recId, ym };
+            const label = t ? `${t.description} · ${moneyBR(t.amount)}` : 'Gasto fixo recorrente';
+            document.getElementById('modal-recurring-desc').innerText = label;
+            const m = document.getElementById('modal-recurring');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+
+        function closeRecurringModal() {
+            const m = document.getElementById('modal-recurring');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            pendingRecurring = null;
+        }
+
+        async function resolveRecurringDelete(mode) {
+            if (!pendingRecurring) return;
+            const { recId, ym } = pendingRecurring;
+            const t = cachedRecurring.find(r => r.id === recId);
+            if (!t) { closeRecurringModal(); return; }
+
+            let error = null;
+            if (mode === 'month') {
+                // Pula apenas o mês visualizado.
+                const skips = Array.from(new Set([...(t.skip_yms || []), ym]));
+                ({ error } = await supabase.from('recurring_fixed').update({ skip_yms: skips }).eq('id', recId));
+            } else {
+                // Remove o gasto fixo de vez (deste mês em diante).
+                if (t.start_ym >= ym) {
+                    ({ error } = await supabase.from('recurring_fixed').delete().eq('id', recId));
+                } else {
+                    ({ error } = await supabase.from('recurring_fixed').update({ end_ym: prevYm(ym) }).eq('id', recId));
+                }
+            }
+
+            if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+            showToast(mode === 'month' ? 'Gasto fixo removido só neste mês.' : 'Gasto fixo encerrado.');
+            closeRecurringModal();
             fetchDashboardAndTransactions();
         }
 
@@ -1716,8 +1842,19 @@
             // ---- Deletar transação ----
             document.getElementById('transactions-list').addEventListener('click', e => {
                 const btn = e.target.closest('[data-del-tx]');
-                if (btn) deleteTransaction(btn.dataset.delTx);
+                if (!btn) return;
+                const id = btn.dataset.delTx;
+                if (id.startsWith('rec:')) openRecurringDeleteModal(id);
+                else deleteTransaction(id);
             });
+
+            // ---- Modal de exclusão de gasto fixo recorrente ----
+            document.getElementById('modal-rec-cancel').addEventListener('click', closeRecurringModal);
+            document.getElementById('modal-recurring').addEventListener('click', (e) => {
+                if (e.target.id === 'modal-recurring') closeRecurringModal();
+            });
+            document.getElementById('modal-rec-month').addEventListener('click', () => resolveRecurringDelete('month'));
+            document.getElementById('modal-rec-forever').addEventListener('click', () => resolveRecurringDelete('forever'));
 
             // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
