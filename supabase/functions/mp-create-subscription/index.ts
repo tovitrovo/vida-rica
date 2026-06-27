@@ -139,25 +139,33 @@ Deno.serve(async (req) => {
     .maybeSingle();
   const groupId = profile?.group_id ?? user.id;
 
-  // --- Persiste a assinatura pendente (substitui qualquer pendência anterior) ---
+  // --- Persiste a nova assinatura pendente ANTES de deletar as antigas.
+  // Isso evita race condition onde um webhook chega entre o delete e o insert.
+  const { data: newSub, error: insErr } = await admin
+    .from("subscriptions")
+    .insert({
+      user_id: user.id,
+      group_id: groupId,
+      account_type: accountType,
+      with_mentorship: withMentorship,
+      status: "pending",
+      amount,
+      mp_preapproval_id: mpData.id,
+    })
+    .select("id")
+    .single();
+
+  if (insErr || !newSub) {
+    return json({ error: "Falha ao registrar assinatura.", details: insErr }, 500);
+  }
+
+  // Remove pendências antigas deste usuário (exceto a que acabamos de criar).
   await admin
     .from("subscriptions")
     .delete()
     .eq("user_id", user.id)
-    .eq("status", "pending");
-
-  const { error: insErr } = await admin.from("subscriptions").insert({
-    user_id: user.id,
-    group_id: groupId,
-    account_type: accountType,
-    with_mentorship: withMentorship,
-    status: "pending",
-    amount,
-    mp_preapproval_id: mpData.id,
-  });
-  if (insErr) {
-    return json({ error: "Falha ao registrar assinatura.", details: insErr }, 500);
-  }
+    .eq("status", "pending")
+    .neq("id", newSub.id);
 
   return json({
     preapproval_id: mpData.id,

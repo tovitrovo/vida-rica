@@ -322,6 +322,9 @@
                     </div>
                     <button type="submit" class="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-sm transition-all active:scale-[0.98]">Fundir Contas e Sincronizar Saldos</button>
                 </form>
+                <div class="pt-2 border-t border-slate-100">
+                    <button id="btn-cancel-subscription" type="button" class="w-full text-[10px] text-slate-400 font-medium underline py-1">Cancelar minha assinatura</button>
+                </div>
             </div>
 
         </main>
@@ -707,11 +710,36 @@
             }
         }
 
+        async function cancelSubscription() {
+            if (!confirm("Cancelar sua assinatura?\n\nVocê e seu grupo perderão o acesso ao encerrar o período atual.")) return;
+            const btn = document.getElementById('btn-cancel-subscription');
+            if (btn) { btn.disabled = true; btn.textContent = 'Cancelando...'; }
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const resp = await fetch(`${FUNCTIONS_URL}/mp-cancel-subscription`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
+                const out = await resp.json();
+                if (!resp.ok) { showToast(out.error || 'Erro ao cancelar assinatura.', 'error'); return; }
+                showToast('Assinatura cancelada. Obrigado por usar o Vida Rica.');
+                await checkAuth();
+            } catch (_) {
+                showToast('Falha de conexão ao cancelar.', 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Cancelar minha assinatura'; }
+            }
+        }
+
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
         async function fetchDashboardAndTransactions() {
             let totalIncome = 0, totalFixed = 0, totalInvest = 0, totalFree = 0;
             let listHtml = "";
 
+            const TX_PAGE_SIZE = 100;
             const searchId = myGroupId || activeUser?.id;
             let txs = [];
             try {
@@ -719,11 +747,13 @@
                     .from('transactions')
                     .select('*')
                     .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(TX_PAGE_SIZE);
                 txs = data || [];
             } catch (_) { txs = []; }
 
-            document.getElementById("history-count").innerText = txs.length;
+            const countLabel = txs.length >= TX_PAGE_SIZE ? `${txs.length}+` : String(txs.length);
+            document.getElementById("history-count").innerText = countLabel;
 
             if (txs.length > 0) {
                 txs.forEach(tx => {
@@ -955,9 +985,12 @@
         }
 
         async function shareWish(wishId) {
+            const wish = cachedWishes.find(w => w.id === wishId);
+            const titulo = wish ? `"${wish.title}"` : 'este desejo';
+            if (!confirm(`Tornar ${titulo} compartilhado com seu grupo?\n\nTodos do grupo poderão ver e contribuir.`)) return;
             const { error } = await supabase.from('wishes').update({ scope: 'shared' }).eq('id', wishId);
             if (error) { showToast("Erro: " + error.message, "error"); return; }
-            showToast("Desejo agora é de vocês! 🏳️‍🌈");
+            showToast("Desejo agora é de vocês!");
             fetchWishes();
         }
 
@@ -1066,13 +1099,15 @@
         async function fetchAdminClients() {
             let profiles = [], subs = [];
             try {
-                const { data: p } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                const { data: p, error: pErr } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+                if (pErr) console.error('fetchAdminClients profiles:', pErr.message);
                 profiles = p || [];
-            } catch (_) { profiles = []; }
+            } catch (e) { console.error('fetchAdminClients profiles exception:', e); profiles = []; }
             try {
-                const { data: s } = await supabase.from('subscriptions').select('*');
+                const { data: s, error: sErr } = await supabase.from('subscriptions').select('*');
+                if (sErr) console.error('fetchAdminClients subscriptions:', sErr.message);
                 subs = s || [];
-            } catch (_) { subs = []; }
+            } catch (e) { console.error('fetchAdminClients subscriptions exception:', e); subs = []; }
 
             const subByUser = {};
             subs.forEach(s => {
@@ -1351,7 +1386,10 @@
                 else showToast("Acesso ainda não liberado — confira com seu par.", "error");
             });
             document.getElementById('btn-plans-logout').addEventListener('click', async () => {
-                await supabase.auth.signOut(); activeUser = null; mySubscription = null; showScreen('screen-auth');
+                await supabase.auth.signOut();
+                activeUser = null; myGroupId = null; mySubscription = null; myProfile = null; isAdmin = false;
+                cachedWishes = []; cachedContribs = {};
+                showScreen('screen-auth');
             });
 
             // ---- Painel admin ----
@@ -1471,6 +1509,7 @@
             document.getElementById('btn-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
                 activeUser = null; myGroupId = null; mySubscription = null; myProfile = null; isAdmin = false;
+                cachedWishes = []; cachedContribs = {};
                 showScreen("screen-auth");
                 showToast("Sessão encerrada.");
             });
@@ -1489,10 +1528,15 @@
                 const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
                 const rows = [];
 
-                // Loop que gera uma transação por parcela, somando +1 mês a cada iteração.
+                // Data base calculada uma vez fora do loop para evitar drift de clock
+                // entre iterações e bug de overflow de mês (ex: 31/jan + 1 mês via setMonth).
+                const baseDate = new Date();
+                const baseYear = baseDate.getFullYear();
+                const baseMonth = baseDate.getMonth();
+                const baseDay = baseDate.getDate();
+
                 for (let i = 1; i <= installments; i++) {
-                    const dataParcela = new Date();
-                    dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+                    const dataParcela = new Date(baseYear, baseMonth + (i - 1), baseDay);
                     rows.push({
                         user_id: activeUser?.id,
                         group_id: myGroupId,
@@ -1531,6 +1575,9 @@
                 const del = e.target.closest('[data-del-card]');
                 if (del) deleteCardOrAccount(del.dataset.delCard);
             });
+
+            // ---- Cancelar assinatura ----
+            document.getElementById('btn-cancel-subscription').addEventListener('click', cancelSubscription);
 
             // ---- Copiar código de convite ----
             document.getElementById('btn-copy-invite').addEventListener('click', async () => {
