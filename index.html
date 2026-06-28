@@ -318,7 +318,7 @@
                     <i class="fa-solid fa-repeat"></i>
                 </div>
                 <h2 class="font-display font-bold text-xl tracking-tight">Gastos fixos do casal</h2>
-                <p class="text-sm text-muted leading-snug">Esses gastos já estão no painel de vocês. <strong>Não precisa cadastrar de novo</strong> — eles já são computados para os dois.</p>
+                <p class="text-sm text-muted leading-snug">Escolha quais gastos são <strong>compartilhados</strong> entre vocês. Os marcados como "Compartilhado" entram no seu orçamento também.</p>
             </div>
 
             <div id="ponb-fixed-list" class="space-y-2"></div>
@@ -1227,6 +1227,18 @@
         }
 
         // ===================== ONBOARDING PARCERIA =====================
+        function ponbHiddenKey() {
+            return `vr_hidden_recurring_${activeUser?.id}`;
+        }
+
+        function ponbGetHidden() {
+            try { return JSON.parse(localStorage.getItem(ponbHiddenKey()) || '[]'); } catch (_) { return []; }
+        }
+
+        function ponbSetHidden(ids) {
+            try { localStorage.setItem(ponbHiddenKey(), JSON.stringify(ids)); } catch (_) {}
+        }
+
         async function initPartnerOnboarding() {
             document.getElementById('ponb-step-1').classList.remove('hidden');
             document.getElementById('ponb-step-2').classList.add('hidden');
@@ -1236,7 +1248,7 @@
                 const { data } = await supabase
                     .from('recurring_fixed')
                     .select('*')
-                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .eq('user_id', searchId)
                     .eq('type', 'fixed')
                     .neq('active', false);
                 renderPartnerFixedList(data || []);
@@ -1254,7 +1266,10 @@
                 return;
             }
             empty.classList.add('hidden');
-            list.innerHTML = items.map(item => `
+            const hidden = ponbGetHidden();
+            list.innerHTML = items.map(item => {
+                const isShared = !hidden.includes(item.id);
+                return `
                 <div class="vr-card p-4 flex items-center gap-3">
                     <div class="w-9 h-9 bg-rose-50 text-rose-400 rounded-xl flex items-center justify-center shrink-0 text-xs">
                         <i class="fa-solid fa-repeat"></i>
@@ -1263,12 +1278,37 @@
                         <p class="text-sm font-semibold text-ink truncate">${escapeHtml(item.description)}</p>
                         <p class="text-xs text-muted">${moneyBR(item.amount)} / mês</p>
                     </div>
-                    <div class="shrink-0 flex items-center gap-1">
-                        <span class="text-xs text-emerald-600 font-semibold">Compartilhado</span>
-                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                    </div>
-                </div>
-            `).join('');
+                    <button type="button" class="ponb-share-btn shrink-0 flex items-center gap-1.5 py-1 pl-2 pr-1 rounded-xl transition-colors ${isShared ? 'text-emerald-600' : 'text-muted'}"
+                        data-id="${escapeHtml(item.id)}" data-shared="${isShared}">
+                        <span class="ponb-share-label text-xs font-semibold">${isShared ? 'Compartilhado' : 'Só do parceiro'}</span>
+                        <div class="ponb-track w-10 h-6 rounded-full relative transition-colors ${isShared ? 'bg-emerald-500' : 'bg-gray-200'}">
+                            <div class="ponb-dot w-5 h-5 bg-white rounded-full shadow-sm absolute top-0.5 transition-all ${isShared ? 'right-0.5' : 'left-0.5'}"></div>
+                        </div>
+                    </button>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('.ponb-share-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const shared = btn.dataset.shared === 'true';
+                    const newShared = !shared;
+                    btn.dataset.shared = String(newShared);
+                    const label = btn.querySelector('.ponb-share-label');
+                    const track = btn.querySelector('.ponb-track');
+                    const dot = btn.querySelector('.ponb-dot');
+                    if (newShared) {
+                        label.textContent = 'Compartilhado';
+                        btn.className = btn.className.replace('text-muted', 'text-emerald-600');
+                        track.className = track.className.replace('bg-gray-200', 'bg-emerald-500');
+                        dot.className = dot.className.replace('left-0.5', 'right-0.5');
+                    } else {
+                        label.textContent = 'Só do parceiro';
+                        btn.className = btn.className.replace('text-emerald-600', 'text-muted');
+                        track.className = track.className.replace('bg-emerald-500', 'bg-gray-200');
+                        dot.className = dot.className.replace('right-0.5', 'left-0.5');
+                    }
+                });
+            });
         }
 
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
@@ -1311,7 +1351,11 @@
                     .from('recurring_fixed')
                     .select('*')
                     .or(`user_id.eq.${searchId},group_id.eq.${searchId}`);
-                cachedRecurring = error ? [] : (data || []);
+                const hidden = ponbGetHidden();
+                // Filtra itens que o usuário marcou como "não compartilhado" (só do parceiro).
+                cachedRecurring = error ? [] : (data || []).filter(t =>
+                    t.user_id === activeUser?.id || !hidden.includes(t.id)
+                );
             } catch (_) { cachedRecurring = []; }
 
             const monthStartIso = new Date(viewYear, viewMonth, 1).toISOString();
@@ -2205,7 +2249,13 @@
                 document.getElementById('ponb-step-1').classList.add('hidden');
                 document.getElementById('ponb-step-2').classList.remove('hidden');
             });
-            document.getElementById('btn-ponb-finish').addEventListener('click', () => openAppData());
+            document.getElementById('btn-ponb-finish').addEventListener('click', () => {
+                const notSharedIds = Array.from(
+                    document.querySelectorAll('.ponb-share-btn[data-shared="false"]')
+                ).map(b => b.dataset.id).filter(Boolean);
+                ponbSetHidden(notSharedIds);
+                openAppData();
+            });
 
             // ---- Painel admin ----
             document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
