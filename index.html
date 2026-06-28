@@ -249,6 +249,95 @@
         </form>
     </section>
 
+    <!-- ===================== ONBOARDING PARCERIA ===================== -->
+    <section id="screen-partner-onboarding" class="screen max-w-sm w-full mx-auto px-6 py-10 min-h-screen flex flex-col space-y-5">
+
+        <!-- PASSO 1: Boas-vindas e explicação do app -->
+        <div id="ponb-step-1" class="space-y-6">
+            <div class="text-center space-y-3">
+                <div class="w-14 h-14 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift text-xl">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <h1 class="font-display font-bold text-2xl tracking-tight">Bem-vindo(a) ao grupo!</h1>
+                <p class="text-sm text-muted leading-snug">Sua conta foi integrada com sucesso. Agora vocês compartilham o mesmo painel financeiro.</p>
+            </div>
+
+            <div class="space-y-2.5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-muted mb-1">Como funciona o Vida Rica</p>
+
+                <div class="vr-card p-4 flex gap-3 items-center">
+                    <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 text-sm">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-ink">Renda</p>
+                        <p class="text-xs text-muted">Toda entrada de dinheiro do casal</p>
+                    </div>
+                </div>
+
+                <div class="vr-card p-4 flex gap-3 items-center">
+                    <div class="w-9 h-9 bg-rose-100 text-rose-500 rounded-xl flex items-center justify-center shrink-0 text-sm">
+                        <i class="fa-solid fa-repeat"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-ink">Gastos Fixos</p>
+                        <p class="text-xs text-muted">Aluguel, energia, internet — repetem todo mês</p>
+                    </div>
+                </div>
+
+                <div class="vr-card p-4 flex gap-3 items-center">
+                    <div class="w-9 h-9 bg-indigo-100 text-indigo-500 rounded-xl flex items-center justify-center shrink-0 text-sm">
+                        <i class="fa-solid fa-seedling"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-ink">Investimentos</p>
+                        <p class="text-xs text-muted">O que vocês guardam e fazem crescer</p>
+                    </div>
+                </div>
+
+                <div class="vr-card p-4 flex gap-3 items-center">
+                    <div class="w-9 h-9 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0 text-sm">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-ink">Gastos Livres</p>
+                        <p class="text-xs text-muted">Compras do dia a dia, lazer, extras</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-ponb-next" type="button" class="vr-btn vr-btn-spectrum w-full">
+                Ver gastos fixos do casal <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+        </div>
+
+        <!-- PASSO 2: Gastos fixos compartilhados -->
+        <div id="ponb-step-2" class="hidden space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-rose-50 text-rose-400 rounded-2xl flex items-center justify-center mx-auto text-lg">
+                    <i class="fa-solid fa-repeat"></i>
+                </div>
+                <h2 class="font-display font-bold text-xl tracking-tight">Gastos fixos do casal</h2>
+                <p class="text-sm text-muted leading-snug">Esses gastos já estão no painel de vocês. <strong>Não precisa cadastrar de novo</strong> — eles já são computados para os dois.</p>
+            </div>
+
+            <div id="ponb-fixed-list" class="space-y-2"></div>
+
+            <div id="ponb-fixed-empty" class="hidden vr-card p-5 text-center space-y-2">
+                <i class="fa-solid fa-circle-check text-emerald-400 text-2xl block"></i>
+                <p class="text-sm text-muted">Nenhum gasto fixo cadastrado ainda. Você pode adicionar depois no painel.</p>
+            </div>
+
+            <div class="vr-card p-4 border-blue-100" style="background: #eff6ff;">
+                <p class="text-xs leading-snug" style="color: #1d4ed8;"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Dica:</strong> Se você tiver gastos fixos <em>só seus</em>, adicione no painel depois. Os gastos acima já fazem parte do orçamento compartilhado.</p>
+            </div>
+
+            <button id="btn-ponb-finish" type="button" class="vr-btn vr-btn-spectrum w-full">
+                Entrar no painel <i class="fa-solid fa-gem ml-1"></i>
+            </button>
+        </div>
+    </section>
+
     <!-- ===================== ÁREA LOGADA ===================== -->
     <div id="screen-app" class="screen">
         <!-- HEADER — claro e minimalista -->
@@ -676,6 +765,7 @@
         let myProfile = null;      // linha de public.profiles do usuário
         let mySubscription = null; // assinatura ativa/pendente do grupo
         let isAdmin = false;       // e-mail consta em ADMIN_EMAILS
+        let isNewPartnerJoin = false; // flag: acabou de entrar via convite → mostra wizard
         let planPrices = {};       // mapa "accountType|mentorship" -> amount
         let selectedAccount = 'individual'; // seleção na tela de planos
         let monthlySurplus = 0;    // sobra mensal (renda - saídas) p/ viabilidade de desejos
@@ -881,6 +971,14 @@
                 (mySubscription && mySubscription.with_mentorship && mySubscription.status === 'active');
             document.getElementById("nav-btn-mentorship").classList.toggle("hidden", !hasMentorship);
             switchTab('panel-launch', 'nav-btn-launch');
+
+            // Recém entrou via convite → wizard de onboarding da parceria.
+            if (isNewPartnerJoin) {
+                isNewPartnerJoin = false;
+                await initPartnerOnboarding();
+                showScreen("screen-partner-onboarding");
+                return;
+            }
 
             // Primeiro acesso sem nenhum lançamento → cadastro inicial.
             if (await groupHasNoTransactions()) {
@@ -1126,6 +1224,51 @@
             btn.innerHTML = original;
             showToast('Tudo pronto! Bem-vindo(a) à sua Vida Rica. ✨');
             openAppData();
+        }
+
+        // ===================== ONBOARDING PARCERIA =====================
+        async function initPartnerOnboarding() {
+            document.getElementById('ponb-step-1').classList.remove('hidden');
+            document.getElementById('ponb-step-2').classList.add('hidden');
+
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { data } = await supabase
+                    .from('recurring_fixed')
+                    .select('*')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .eq('type', 'fixed')
+                    .neq('active', false);
+                renderPartnerFixedList(data || []);
+            } catch (_) {
+                renderPartnerFixedList([]);
+            }
+        }
+
+        function renderPartnerFixedList(items) {
+            const list = document.getElementById('ponb-fixed-list');
+            const empty = document.getElementById('ponb-fixed-empty');
+            if (!items.length) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            list.innerHTML = items.map(item => `
+                <div class="vr-card p-4 flex items-center gap-3">
+                    <div class="w-9 h-9 bg-rose-50 text-rose-400 rounded-xl flex items-center justify-center shrink-0 text-xs">
+                        <i class="fa-solid fa-repeat"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-ink truncate">${escapeHtml(item.description)}</p>
+                        <p class="text-xs text-muted">${moneyBR(item.amount)} / mês</p>
+                    </div>
+                    <div class="shrink-0 flex items-center gap-1">
+                        <span class="text-xs text-emerald-600 font-semibold">Compartilhado</span>
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
@@ -2019,19 +2162,23 @@
             document.getElementById('btn-subscribe').addEventListener('click', subscribeNow);
             document.getElementById('btn-plans-refresh').addEventListener('click', () => { showToast('Atualizando acesso...'); checkAuth(); });
             document.getElementById('btn-plans-join').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-plans-join');
                 const token = document.getElementById('plans-invite-token').value.trim();
                 if (!token) { showToast("Cole o código do convite.", "error"); return; }
                 if (token === activeUser?.id) { showToast("Você não pode usar o seu próprio código.", "error"); return; }
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                 const { data: result, error } = await supabase.rpc('join_partner', { partner: token });
+                btn.disabled = false;
+                btn.innerHTML = 'Entrar';
                 if (error) { showToast("Erro: " + error.message, "error"); return; }
                 if (result === 'self')    { showToast("Você não pode usar o seu próprio código.", "error"); return; }
                 if (result === 'no_plan') { showToast("O dono do código ainda não tem um plano ativo.", "error"); return; }
                 if (result === 'full')    { showToast("Este grupo já atingiu o limite de pessoas do plano.", "error"); return; }
                 myGroupId = token;
-                showToast("Convite aceito! Bem-vindo(a) ao grupo. 🏳️‍🌈");
+                isNewPartnerJoin = true;
                 await fetchSubscription();
-                if (mySubscription && mySubscription.status === 'active') enterApp();
-                else showToast("Acesso ainda não liberado — confira com seu par.", "error");
+                await enterApp();
             });
             document.getElementById('btn-plans-logout').addEventListener('click', async () => {
                 await supabase.auth.signOut();
@@ -2052,6 +2199,13 @@
             document.getElementById('form-onboarding').addEventListener('input', updateOnbSurplus);
             document.getElementById('form-onboarding').addEventListener('submit', (e) => { e.preventDefault(); submitOnboarding(); });
             document.getElementById('btn-onb-skip').addEventListener('click', () => openAppData());
+
+            // ---- Onboarding parceria ----
+            document.getElementById('btn-ponb-next').addEventListener('click', () => {
+                document.getElementById('ponb-step-1').classList.add('hidden');
+                document.getElementById('ponb-step-2').classList.remove('hidden');
+            });
+            document.getElementById('btn-ponb-finish').addEventListener('click', () => openAppData());
 
             // ---- Painel admin ----
             document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
