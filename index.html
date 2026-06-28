@@ -318,7 +318,7 @@
                     <i class="fa-solid fa-repeat"></i>
                 </div>
                 <h2 class="font-display font-bold text-xl tracking-tight">Gastos fixos do casal</h2>
-                <p class="text-sm text-muted leading-snug">Esses gastos já estão no painel de vocês. <strong>Não precisa cadastrar de novo</strong> — eles já são computados para os dois.</p>
+                <p class="text-sm text-muted leading-snug">Confira os gastos do casal. Toque em <strong>Compartilhado</strong> para indicar quais são só do(a) parceiro(a).</p>
             </div>
 
             <div id="ponb-fixed-list" class="space-y-2"></div>
@@ -329,7 +329,7 @@
             </div>
 
             <div class="vr-card p-4 border-blue-100" style="background: #eff6ff;">
-                <p class="text-xs leading-snug" style="color: #1d4ed8;"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Dica:</strong> Se você tiver gastos fixos <em>só seus</em>, adicione no painel depois. Os gastos acima já fazem parte do orçamento compartilhado.</p>
+                <p class="text-xs leading-snug" style="color: #1d4ed8;"><i class="fa-solid fa-lightbulb mr-1"></i> <strong>Dica:</strong> Toque no badge de cada gasto para alternar entre <em>Compartilhado</em> e <em>Não compartilhado</em>. Gastos fixos só seus podem ser adicionados depois no painel.</p>
             </div>
 
             <button id="btn-ponb-finish" type="button" class="vr-btn vr-btn-spectrum w-full">
@@ -766,6 +766,8 @@
         let mySubscription = null; // assinatura ativa/pendente do grupo
         let isAdmin = false;       // e-mail consta em ADMIN_EMAILS
         let isNewPartnerJoin = false; // flag: acabou de entrar via convite → mostra wizard
+        let ponbFixedItems = [];      // gastos fixos carregados no onboarding de parceria
+        let ponbSharedState = new Set(); // IDs marcados como compartilhados pelo convidado
         let planPrices = {};       // mapa "accountType|mentorship" -> amount
         let selectedAccount = 'individual'; // seleção na tela de planos
         let monthlySurplus = 0;    // sobra mensal (renda - saídas) p/ viabilidade de desejos
@@ -1248,6 +1250,8 @@
         function renderPartnerFixedList(items) {
             const list = document.getElementById('ponb-fixed-list');
             const empty = document.getElementById('ponb-fixed-empty');
+            ponbFixedItems = items;
+            ponbSharedState = new Set(items.map(i => i.id));
             if (!items.length) {
                 list.innerHTML = '';
                 empty.classList.remove('hidden');
@@ -1263,12 +1267,31 @@
                         <p class="text-sm font-semibold text-ink truncate">${escapeHtml(item.description)}</p>
                         <p class="text-xs text-muted">${moneyBR(item.amount)} / mês</p>
                     </div>
-                    <div class="shrink-0 flex items-center gap-1">
-                        <span class="text-xs text-emerald-600 font-semibold">Compartilhado</span>
+                    <button type="button" data-ponb-id="${item.id}"
+                        class="ponb-shared-toggle shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg active:scale-95 transition-transform select-none">
+                        <span class="text-xs font-semibold text-emerald-600">Compartilhado</span>
                         <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                    </div>
+                    </button>
                 </div>
             `).join('');
+
+            list.querySelectorAll('.ponb-shared-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.ponbId;
+                    const nowShared = ponbSharedState.has(id);
+                    if (nowShared) {
+                        ponbSharedState.delete(id);
+                        btn.querySelector('span').textContent = 'Não compartilhado';
+                        btn.querySelector('span').className = 'text-xs font-semibold text-slate-400';
+                        btn.querySelector('i').className = 'fa-solid fa-circle-xmark text-slate-300';
+                    } else {
+                        ponbSharedState.add(id);
+                        btn.querySelector('span').textContent = 'Compartilhado';
+                        btn.querySelector('span').className = 'text-xs font-semibold text-emerald-600';
+                        btn.querySelector('i').className = 'fa-solid fa-circle-check text-emerald-500';
+                    }
+                });
+            });
         }
 
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
@@ -2205,7 +2228,27 @@
                 document.getElementById('ponb-step-1').classList.add('hidden');
                 document.getElementById('ponb-step-2').classList.remove('hidden');
             });
-            document.getElementById('btn-ponb-finish').addEventListener('click', () => openAppData());
+            document.getElementById('btn-ponb-finish').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-ponb-finish');
+                const original = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Salvando…';
+
+                const notSharedIds = ponbFixedItems
+                    .filter(item => !ponbSharedState.has(item.id))
+                    .map(item => item.id);
+
+                if (notSharedIds.length > 0) {
+                    await supabase
+                        .from('recurring_fixed')
+                        .update({ shared: false })
+                        .in('id', notSharedIds);
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = original;
+                openAppData();
+            });
 
             // ---- Painel admin ----
             document.getElementById('btn-open-admin').addEventListener('click', openAdmin);
