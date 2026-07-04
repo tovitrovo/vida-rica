@@ -808,5 +808,96 @@ end $$;
 alter table public.wishes drop constraint if exists wishes_group_id_fkey;
 
 -- ============================================================================
+-- 16. RAIO-X FINANCEIRO DO PRIMEIRO ACESSO
+--     Saldo em conta (cards), dívidas recorrentes (recurring_fixed) e dívidas
+--     pontuais (tabela nova debts). Investimentos existentes reaproveitam
+--     wishes/wish_contributions e já cobertos pelas seções 10/11 acima.
+-- ============================================================================
+
+-- 16.1. cards: retrato do saldo informado no cadastro (não é saldo vivo).
+alter table public.cards add column if not exists initial_balance    numeric(14, 2);
+alter table public.cards add column if not exists initial_balance_at timestamptz;
+
+-- 16.2. recurring_fixed: marcador de dívida recorrente (empréstimo/
+--       financiamento/consórcio) — continua contando no pilar "Fixos".
+alter table public.recurring_fixed add column if not exists debt_category text;
+
+do $$
+begin
+    if not exists (select 1 from pg_constraint where conname = 'recurring_fixed_debt_category_chk') then
+        alter table public.recurring_fixed
+            add constraint recurring_fixed_debt_category_chk
+            check (debt_category is null or debt_category in ('loan', 'financing', 'consortium'));
+    end if;
+end $$;
+
+-- 16.3. debts: dívidas pontuais (sem cadência mensal).
+create table if not exists public.debts (
+    id          uuid primary key default gen_random_uuid(),
+    user_id     uuid not null references auth.users (id) on delete cascade,
+    group_id    uuid not null,
+    description text not null,
+    amount      numeric(14, 2) not null default 0,
+    due_date    date,
+    status      text not null default 'pending',
+    created_at  timestamptz not null default now()
+);
+
+alter table public.debts add column if not exists user_id     uuid references auth.users (id) on delete cascade;
+alter table public.debts add column if not exists group_id    uuid;
+alter table public.debts add column if not exists description text;
+alter table public.debts add column if not exists amount      numeric(14, 2) not null default 0;
+alter table public.debts add column if not exists due_date    date;
+alter table public.debts add column if not exists status      text not null default 'pending';
+alter table public.debts add column if not exists created_at  timestamptz not null default now();
+
+do $$
+begin
+    if not exists (select 1 from pg_constraint where conname = 'debts_amount_chk') then
+        alter table public.debts add constraint debts_amount_chk check (amount >= 0);
+    end if;
+    if not exists (select 1 from pg_constraint where conname = 'debts_status_chk') then
+        alter table public.debts add constraint debts_status_chk check (status in ('pending', 'paid'));
+    end if;
+end $$;
+
+create index if not exists idx_debts_user_id  on public.debts (user_id);
+create index if not exists idx_debts_group_id on public.debts (group_id);
+
+alter table public.debts enable row level security;
+
+drop policy if exists "debts_select_group" on public.debts;
+create policy "debts_select_group" on public.debts
+    for select using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+        or public.is_admin()
+    );
+
+drop policy if exists "debts_insert_own" on public.debts;
+create policy "debts_insert_own" on public.debts
+    for insert with check (auth.uid() = user_id);
+
+drop policy if exists "debts_update_group" on public.debts;
+create policy "debts_update_group" on public.debts
+    for update using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+    ) with check (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+    );
+
+drop policy if exists "debts_delete_own" on public.debts;
+create policy "debts_delete_own" on public.debts
+    for delete using (auth.uid() = user_id);
+
+grant select, insert, update, delete on table public.debts to authenticated;
+grant all privileges on table public.debts to service_role;
+
+-- ============================================================================
 -- FIM DO SCRIPT
 -- ============================================================================

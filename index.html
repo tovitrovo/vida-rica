@@ -90,6 +90,17 @@
         /* Pílulas de filtro do extrato */
         .tx-filter-pill { font-size:.72rem; font-weight:600; padding:.3rem .7rem; border-radius:.7rem; background:#f1eff6; color:#7d7689; transition: all .15s; }
         .tx-filter-pill.is-active { background:#1a1626; color:#fff; }
+
+        /* Motor de wizard (raio-x financeiro / gastos fixos guiados) */
+        .wiz-step { display: none; }
+        .wiz-step.is-active { display: block; animation: fadeIn 0.25s cubic-bezier(.2,.7,.2,1); }
+        .wiz-dots { display:flex; align-items:center; justify-content:center; gap:.3rem; }
+        .wiz-dot { width:.4rem; height:.4rem; border-radius:99px; background:#e3dff0; transition: all .2s; }
+        .wiz-dot.is-active { width:1.1rem; background: var(--spectrum); }
+        .wiz-dot.is-done { background:#c9c1de; }
+        .wiz-chip { padding:.55rem .9rem; border-radius:.85rem; font-size:.8rem; font-weight:600; border:1px solid var(--line); background:#faf9fc; color:#7d7689; transition: all .18s; }
+        .wiz-chip.is-active { background: var(--spectrum); color:#fff; border-color:transparent; box-shadow:0 10px 24px -14px rgba(155,107,255,.8); }
+        .wiz-row { background:#faf9fc; border:1px solid var(--line); border-radius:1rem; padding:.75rem; }
     </style>
 </head>
 <body class="bg-canvas text-ink min-h-screen flex flex-col pb-12 antialiased">
@@ -202,51 +213,135 @@
         <button id="btn-plans-logout" type="button" class="text-center text-xs text-muted font-medium">Sair desta conta</button>
     </section>
 
-    <!-- ===================== CADASTRO INICIAL (ONBOARDING) ===================== -->
-    <section id="screen-onboarding" class="screen max-w-sm w-full mx-auto px-6 py-10 min-h-screen flex flex-col justify-center space-y-5">
-        <div class="text-center space-y-2">
-            <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-            <h1 class="font-display font-bold text-2xl tracking-tight">Vamos montar seu mês</h1>
-            <p class="text-sm text-muted leading-snug">Cadastre sua renda e seus gastos fixos. Você pode editar tudo depois — isso é só pra começar com o dashboard preenchido.</p>
-        </div>
+    <!-- ===================== RAIO-X FINANCEIRO (WIZARD A — PRIMEIRO ACESSO) ===================== -->
+    <section id="screen-first-access" class="screen max-w-sm w-full mx-auto px-6 py-8 min-h-screen flex flex-col justify-center space-y-4">
+        <div class="wiz-dots" id="fa-dots"></div>
 
-        <form id="form-onboarding" class="vr-card p-6 space-y-5">
-            <!-- Renda -->
-            <div class="space-y-2">
-                <label class="vr-label !mb-0">Sua renda</label>
-                <div class="vr-seg" id="onb-income-kind">
+        <div id="fa-steps" class="vr-card p-6 space-y-4">
+
+            <!-- Passo 0: nome -->
+            <div class="wiz-step is-active" data-step="0">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-hand-sparkles"></i></div>
+                    <h1 class="font-display font-bold text-2xl tracking-tight">Oi! Seja bem-vindo(a) 👋</h1>
+                    <p class="text-sm text-muted leading-snug">Vamos organizar sua vida financeira? Antes de tudo, me diz seu nome.</p>
+                </div>
+                <input type="text" id="fa-name" placeholder="Seu nome" class="vr-field font-semibold text-lg text-center">
+            </div>
+
+            <!-- Passo 1: renda -->
+            <div class="wiz-step" data-step="1">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <h1 id="fa-income-title" class="font-display font-bold text-xl tracking-tight">Quanto costuma entrar por mês?</h1>
+                    <p class="text-sm text-muted leading-snug">Um valor aproximado já ajuda. Você edita isso quando quiser.</p>
+                </div>
+                <div class="vr-seg mb-3" id="fa-income-kind">
                     <button type="button" data-income-kind="salary" class="vr-seg-btn is-active">Salário (todo mês)</button>
                     <button type="button" data-income-kind="variable" class="vr-seg-btn">Varia / autônomo</button>
                 </div>
-                <input type="number" step="0.01" min="0" id="onb-income" placeholder="Ex: 6.500,00" class="vr-field font-semibold text-lg">
-                <p id="onb-income-hint" class="text-xs text-muted">Renda fixa repete automaticamente todo mês. Você pode editar depois.</p>
+                <input type="number" step="0.01" min="0" id="fa-income" placeholder="Ex: 6.500,00" class="vr-field font-semibold text-lg">
             </div>
 
-            <!-- Gastos fixos -->
-            <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <label class="vr-label !mb-0">Gastos fixos mensais</label>
-                    <button type="button" id="btn-onb-add-fixed" class="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1 rounded-lg"><i class="fa-solid fa-plus"></i> Adicionar</button>
+            <!-- Passo 2: saldo em conta -->
+            <div class="wiz-step" data-step="2">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-building-columns"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-balance-title">Hoje você tem dinheiro guardado em conta?</h1>
+                    <p class="text-sm text-muted leading-snug">Conta corrente, poupança, carteira digital... o que tiver.</p>
                 </div>
-                <div id="onb-fixed-rows" class="space-y-2"></div>
-                <p class="text-xs text-muted">Aluguel, energia, internet, assinaturas... o que repete todo mês.</p>
+                <div class="vr-seg mb-3" data-yesno="balance">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fa-balance-rows" class="space-y-2 hidden"></div>
+                <button type="button" id="btn-fa-add-balance" class="hidden text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg mt-2"><i class="fa-solid fa-plus"></i> Adicionar outra conta</button>
             </div>
 
-            <!-- Meta de investimento -->
-            <div>
-                <label class="vr-label">Quanto quer guardar/investir por mês? <span class="text-muted/70 font-normal">(opcional)</span></label>
-                <input type="number" step="0.01" min="0" id="onb-invest" placeholder="Ex: 1.000,00" class="vr-field font-semibold">
+            <!-- Passo 3: cartão de crédito parcelado -->
+            <div class="wiz-step" data-step="3">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-credit-card"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-credit-title">Tem cartão de crédito com parcelas em aberto?</h1>
+                    <p class="text-sm text-muted leading-snug">Aquela compra que ainda está parcelando.</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="credit">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fa-credit-rows" class="space-y-2 hidden"></div>
+                <button type="button" id="btn-fa-add-credit" class="hidden text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg mt-2"><i class="fa-solid fa-plus"></i> Adicionar outra compra</button>
             </div>
 
-            <!-- Prévia da sobra -->
-            <div class="bg-canvas border border-line rounded-2xl p-3.5 flex items-center justify-between">
-                <span class="text-sm text-muted">Sobra estimada / mês</span>
-                <span id="onb-surplus" class="font-display font-bold text-lg text-ink">R$ 0,00</span>
+            <!-- Passo 4: dívida pontual (sem recorrência) -->
+            <div class="wiz-step" data-step="4">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-file-invoice"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-debt-title">Tem alguma dívida solta pra pagar?</h1>
+                    <p class="text-sm text-muted leading-snug">Tipo um boleto atrasado ou uma conta pendente — algo que não se repete todo mês.</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="debt">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fa-debt-rows" class="space-y-2 hidden"></div>
+                <button type="button" id="btn-fa-add-debt" class="hidden text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg mt-2"><i class="fa-solid fa-plus"></i> Adicionar outra dívida</button>
             </div>
 
-            <button type="submit" class="vr-btn vr-btn-spectrum">Concluir e ver meu painel</button>
-            <button type="button" id="btn-onb-skip" class="w-full text-xs text-muted font-medium">Pular por agora</button>
-        </form>
+            <!-- Passo 5: dívida recorrente -->
+            <div class="wiz-step" data-step="5">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-recdebt-title">E dívidas que se repetem todo mês?</h1>
+                    <p class="text-sm text-muted leading-snug">Empréstimo, financiamento, consórcio...</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="recdebt">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fa-recdebt-rows" class="space-y-2 hidden"></div>
+                <button type="button" id="btn-fa-add-recdebt" class="hidden text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg mt-2"><i class="fa-solid fa-plus"></i> Adicionar outra</button>
+            </div>
+
+            <!-- Passo 6: investimentos existentes -->
+            <div class="wiz-step" data-step="6">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-seedling"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-invest-title">Você já tem algum dinheiro guardado ou investido?</h1>
+                    <p class="text-sm text-muted leading-snug">Pode ser uma reserva, uma caixinha de objetivo, ações... o que for.</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="invest">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fa-invest-rows" class="space-y-2 hidden"></div>
+                <button type="button" id="btn-fa-add-invest" class="hidden text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg mt-2"><i class="fa-solid fa-plus"></i> Adicionar outro</button>
+            </div>
+
+            <!-- Passo 7: meta de investimento mensal -->
+            <div class="wiz-step" data-step="7">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-piggy-bank"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight" id="fa-goal-title">Quer guardar um valor todo mês daqui pra frente?</h1>
+                    <p class="text-sm text-muted leading-snug">Opcional — é a sua meta de investimento mensal.</p>
+                </div>
+                <input type="number" step="0.01" min="0" id="fa-goal" placeholder="Ex: 500,00" class="vr-field font-semibold text-lg">
+            </div>
+
+            <!-- Passo 8: resumo final -->
+            <div class="wiz-step" data-step="8">
+                <div class="text-center space-y-3">
+                    <div class="w-14 h-14 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift text-xl"><i class="fa-solid fa-gem"></i></div>
+                    <h1 class="font-display font-bold text-2xl tracking-tight" id="fa-final-title">Prontinho!</h1>
+                    <p class="text-sm text-muted leading-snug">Seu painel já nasce com o retrato da sua vida financeira de hoje. Tudo pode ser editado depois, a qualquer momento.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <button type="button" id="btn-fa-back" class="vr-btn vr-btn-ghost hidden">Voltar</button>
+            <button type="button" id="btn-fa-next" class="vr-btn vr-btn-spectrum">Continuar</button>
+        </div>
     </section>
 
     <!-- ===================== ONBOARDING PARCERIA ===================== -->
@@ -338,6 +433,162 @@
         </div>
     </section>
 
+    <!-- ===================== GASTOS FIXOS GUIADOS (WIZARD B) ===================== -->
+    <section id="screen-fixed-expenses" class="screen max-w-sm w-full mx-auto px-6 py-8 min-h-screen flex flex-col justify-center space-y-4">
+        <div class="wiz-dots" id="fe-dots"></div>
+
+        <div id="fe-steps" class="vr-card p-6 space-y-4">
+
+            <!-- Passo 0: moradia -->
+            <div class="wiz-step is-active" data-step="0">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-house"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Vamos organizar seus gastos fixos?</h1>
+                    <p class="text-sm text-muted leading-snug">Você paga aluguel ou financiamento da casa?</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="housing">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fe-housing-fields" class="space-y-2 hidden">
+                    <div class="vr-seg mb-1" id="fe-housing-kind">
+                        <button type="button" data-housing-kind="rent" class="vr-seg-btn is-active">Aluguel</button>
+                        <button type="button" data-housing-kind="financing" class="vr-seg-btn">Financiamento</button>
+                    </div>
+                    <input type="number" step="0.01" min="0" id="fe-housing-amount" placeholder="Valor mensal" class="vr-field font-semibold">
+                </div>
+            </div>
+
+            <!-- Passo 1: condomínio / IPTU -->
+            <div class="wiz-step" data-step="1">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-building"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Tem condomínio ou IPTU?</h1>
+                    <p class="text-sm text-muted leading-snug">Se não tiver, pode deixar em branco e seguir.</p>
+                </div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="vr-label">Condomínio (mensal)</label>
+                        <input type="number" step="0.01" min="0" id="fe-condo-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">IPTU (mensal, ou já dividido) <span class="text-muted/70 font-normal">(opcional)</span></label>
+                        <input type="number" step="0.01" min="0" id="fe-iptu-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 2: carro -->
+            <div class="wiz-step" data-step="2">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-car"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Você tem carro?</h1>
+                    <p class="text-sm text-muted leading-snug">Financiamento, seguro, estacionamento fixo...</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="car">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fe-car-fields" class="space-y-2 hidden">
+                    <div>
+                        <label class="vr-label">Financiamento do carro <span class="text-muted/70 font-normal">(opcional)</span></label>
+                        <input type="number" step="0.01" min="0" id="fe-car-financing" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">Seguro <span class="text-muted/70 font-normal">(opcional)</span></label>
+                        <input type="number" step="0.01" min="0" id="fe-car-insurance" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">Estacionamento fixo <span class="text-muted/70 font-normal">(opcional)</span></label>
+                        <input type="number" step="0.01" min="0" id="fe-car-parking" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 3: luz, água, gás -->
+            <div class="wiz-step" data-step="3">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-bolt"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Quanto você costuma pagar de luz?</h1>
+                    <p class="text-sm text-muted leading-snug">E de água e gás — pode ser uma média. Deixe em branco o que não tiver.</p>
+                </div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="vr-label">Energia / luz</label>
+                        <input type="number" step="0.01" min="0" id="fe-power-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">Água</label>
+                        <input type="number" step="0.01" min="0" id="fe-water-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">Gás</label>
+                        <input type="number" step="0.01" min="0" id="fe-gas-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 4: internet e celular -->
+            <div class="wiz-step" data-step="4">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-wifi"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Internet fixa e celular?</h1>
+                    <p class="text-sm text-muted leading-snug">O valor que você paga por mês em cada um.</p>
+                </div>
+                <div class="space-y-2">
+                    <div>
+                        <label class="vr-label">Internet fixa</label>
+                        <input type="number" step="0.01" min="0" id="fe-internet-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                    <div>
+                        <label class="vr-label">Celular</label>
+                        <input type="number" step="0.01" min="0" id="fe-phone-amount" placeholder="0,00" class="vr-field font-semibold">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 5: assinaturas -->
+            <div class="wiz-step" data-step="5">
+                <div class="text-center space-y-2 mb-5">
+                    <div class="w-12 h-12 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift"><i class="fa-solid fa-bag-shopping"></i></div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">Tem alguma assinatura?</h1>
+                    <p class="text-sm text-muted leading-snug">Netflix, Spotify, clube do vinho, academia, streaming, o que for.</p>
+                </div>
+                <div class="vr-seg mb-3" data-yesno="subs">
+                    <button type="button" data-yn="yes" class="vr-seg-btn">Sim</button>
+                    <button type="button" data-yn="no" class="vr-seg-btn is-active">Não</button>
+                </div>
+                <div id="fe-subs-chips" class="hidden flex flex-wrap gap-1.5 mb-2">
+                    <button type="button" data-sub-chip="Netflix" class="wiz-chip">Netflix</button>
+                    <button type="button" data-sub-chip="Spotify" class="wiz-chip">Spotify</button>
+                    <button type="button" data-sub-chip="Amazon Prime" class="wiz-chip">Amazon Prime</button>
+                    <button type="button" data-sub-chip="Disney+" class="wiz-chip">Disney+</button>
+                    <button type="button" data-sub-chip="HBO Max" class="wiz-chip">HBO Max</button>
+                    <button type="button" data-sub-chip="Wine" class="wiz-chip">Wine</button>
+                    <button type="button" data-sub-chip="Evino" class="wiz-chip">Evino</button>
+                    <button type="button" data-sub-chip="Petlove" class="wiz-chip">Petlove</button>
+                    <button type="button" data-sub-chip="Academia" class="wiz-chip">Academia</button>
+                    <button type="button" data-sub-chip="" class="wiz-chip">Outra...</button>
+                </div>
+                <div id="fe-subs-rows" class="space-y-2 hidden"></div>
+            </div>
+
+            <!-- Passo 6: resumo final -->
+            <div class="wiz-step" data-step="6">
+                <div class="text-center space-y-3">
+                    <div class="w-14 h-14 spectrum-bg text-white rounded-2xl flex items-center justify-center mx-auto shadow-lift text-xl"><i class="fa-solid fa-circle-check"></i></div>
+                    <h1 class="font-display font-bold text-2xl tracking-tight">Show de bola!</h1>
+                    <p class="text-sm text-muted leading-snug">Seus gastos fixos já ficam no piloto automático, repetindo todo mês. Você pode editar ou remover qualquer um deles na aba Lançar.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <button type="button" id="btn-fe-back" class="vr-btn vr-btn-ghost hidden">Voltar</button>
+            <button type="button" id="btn-fe-next" class="vr-btn vr-btn-spectrum">Continuar</button>
+        </div>
+    </section>
+
     <!-- ===================== ÁREA LOGADA ===================== -->
     <div id="screen-app" class="screen">
         <!-- HEADER — claro e minimalista -->
@@ -412,6 +663,7 @@
             <div id="nav-tabs" class="vr-seg">
                 <button id="nav-btn-launch" class="vr-seg-btn is-active">Lançar</button>
                 <button id="nav-btn-cards" class="vr-seg-btn">Cartões</button>
+                <button id="nav-btn-debts" class="vr-seg-btn">Dívidas</button>
                 <button id="nav-btn-wishes" class="vr-seg-btn">Desejos</button>
                 <button id="nav-btn-mentorship" class="vr-seg-btn hidden">Mentoria</button>
                 <button id="nav-btn-partner" class="vr-seg-btn">Parceria</button>
@@ -525,6 +777,41 @@
                     <button type="submit" class="vr-btn">Salvar cartão/conta</button>
                 </form>
                 <div id="cards-list" class="space-y-2 pt-2 text-sm"></div>
+            </div>
+
+            <!-- ABA: DÍVIDAS -->
+            <div id="panel-debts" class="panel-tab vr-card p-5 space-y-4 hidden">
+                <h4 class="font-display font-bold text-base flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar spectrum-text"></i><span>Dívidas</span></h4>
+                <p class="text-xs text-muted leading-snug -mt-2">Dívidas pontuais (sem repetição) e dívidas recorrentes (empréstimo, financiamento, consórcio). As recorrentes já contam no seu pilar "Fixos".</p>
+
+                <form id="form-debt" class="space-y-3">
+                    <div>
+                        <label class="vr-label">Descrição</label>
+                        <input type="text" id="debt-description" required placeholder="Ex: Boleto atrasado, conta do médico..." class="vr-field">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="vr-label">Valor (R$)</label>
+                            <input type="number" step="0.01" min="0" id="debt-amount" required placeholder="0,00" class="vr-field font-semibold">
+                        </div>
+                        <div>
+                            <label class="vr-label">Vencimento <span class="text-muted/70 font-normal">(opcional)</span></label>
+                            <input type="date" id="debt-due-date" class="vr-field">
+                        </div>
+                    </div>
+                    <button type="submit" class="vr-btn">Adicionar dívida pontual</button>
+                </form>
+
+                <div>
+                    <p class="vr-label !mb-1.5">Pontuais (sem recorrência)</p>
+                    <div id="debts-list" class="space-y-2 text-sm"></div>
+                </div>
+
+                <div id="recurring-debts-wrap" class="hidden">
+                    <p class="vr-label !mb-1.5">Recorrentes (empréstimo, financiamento, consórcio)</p>
+                    <div id="recurring-debts-list" class="space-y-2 text-sm"></div>
+                    <p class="text-xs text-muted mt-1.5">Pra editar, pular um mês ou encerrar uma dívida recorrente, use o lançamento correspondente na aba Lançar.</p>
+                </div>
             </div>
 
             <!-- ABA: DESEJOS -->
@@ -974,18 +1261,16 @@
             document.getElementById("nav-btn-mentorship").classList.toggle("hidden", !hasMentorship);
             switchTab('panel-launch', 'nav-btn-launch');
 
-            // Recém entrou via convite → wizard de onboarding da parceria.
+            // Recém entrou via convite → raio-x financeiro pessoal, depois boas-vindas ao grupo.
             if (isNewPartnerJoin) {
                 isNewPartnerJoin = false;
-                await initPartnerOnboarding();
-                showScreen("screen-partner-onboarding");
+                initFirstAccessWizard('partner');
                 return;
             }
 
-            // Primeiro acesso sem nenhum lançamento → cadastro inicial.
+            // Primeiro acesso sem nenhum lançamento → raio-x financeiro (Wizard A).
             if (await groupHasNoTransactions()) {
-                initOnboarding();
-                showScreen("screen-onboarding");
+                initFirstAccessWizard('app');
                 return;
             }
             openAppData();
@@ -995,6 +1280,7 @@
         function openAppData() {
             showScreen("screen-app");
             loadAppData();
+            maybeStartFixedExpensesWizard();
         }
 
         // Verifica se o grupo ainda não tem nenhum dado (transações nem gastos fixos).
@@ -1122,110 +1408,385 @@
             }
         }
 
-        // ===================== CADASTRO INICIAL (ONBOARDING) =====================
-        const ONB_DEFAULT_FIXED = ['Aluguel / Moradia', 'Energia / Água', 'Internet / Telefone'];
-        let onbIncomeKind = 'salary'; // 'salary' (recorrente) | 'variable' (pontual)
+        // ===================== MOTOR DE WIZARD (REUTILIZÁVEL) =====================
+        // Usado tanto pelo Wizard A (raio-x financeiro) quanto pelo Wizard B
+        // (gastos fixos guiados): navegação tela a tela com barra de progresso,
+        // toggles Sim/Não que revelam campos, e linhas repetíveis.
+        function createStepWizard({ stepsContainerId, dotsContainerId, backBtnId, nextBtnId, onNext, getNextLabel }) {
+            const state = { index: 0 };
+            const steps = () => Array.from(document.querySelectorAll(`#${stepsContainerId} .wiz-step`));
 
-        function setOnbIncomeKind(kind) {
-            onbIncomeKind = kind;
-            document.querySelectorAll('#onb-income-kind [data-income-kind]').forEach(b => {
+            function renderDots() {
+                const total = steps().length;
+                document.getElementById(dotsContainerId).innerHTML = Array.from({ length: total }, (_, i) =>
+                    `<span class="wiz-dot ${i === state.index ? 'is-active' : i < state.index ? 'is-done' : ''}"></span>`
+                ).join('');
+            }
+
+            function show(index) {
+                state.index = index;
+                steps().forEach((s, i) => s.classList.toggle('is-active', i === index));
+                document.getElementById(backBtnId).classList.toggle('hidden', index === 0);
+                document.getElementById(nextBtnId).innerHTML = getNextLabel ? getNextLabel(index, steps().length) : 'Continuar';
+                renderDots();
+            }
+
+            document.getElementById(nextBtnId).addEventListener('click', async () => {
+                const total = steps().length;
+                if (state.index === total - 1) { await onNext(state.index, true); return; }
+                const proceed = onNext ? await onNext(state.index, false) : true;
+                if (proceed === false) return;
+                show(state.index + 1);
+            });
+            document.getElementById(backBtnId).addEventListener('click', () => show(Math.max(0, state.index - 1)));
+
+            return { show, get index() { return state.index; } };
+        }
+
+        // Linha repetível (conta bancária, cartão parcelado, dívida, investimento...).
+        function wizAddRow(containerId, innerHtml) {
+            const box = document.getElementById(containerId);
+            const row = document.createElement('div');
+            row.className = 'wiz-row flex items-start gap-2';
+            row.innerHTML = `<div class="flex-1 space-y-1.5">${innerHtml}</div><button type="button" class="wiz-row-del text-muted hover:text-rose-500 p-1.5 shrink-0"><i class="fa-solid fa-xmark"></i></button>`;
+            box.appendChild(row);
+            row.querySelector('.wiz-row-del').addEventListener('click', () => row.remove());
+            return row;
+        }
+
+        function collectRows(containerId, fieldMap) {
+            return Array.from(document.querySelectorAll(`#${containerId} .wiz-row`)).map(row => {
+                const obj = {};
+                for (const [key, sel] of Object.entries(fieldMap)) obj[key] = row.querySelector(sel)?.value ?? '';
+                return obj;
+            });
+        }
+
+        // Toggle Sim/Não que revela (ou não) um conjunto de elementos.
+        const WIZ_YESNO_GROUPS = {};
+        function wireYesNo(key, revealEls, onFirstYes) {
+            const seg = document.querySelector(`[data-yesno="${key}"]`);
+            if (!seg) return;
+            WIZ_YESNO_GROUPS[key] = { seg, revealEls };
+            seg.querySelectorAll('.vr-seg-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    seg.querySelectorAll('.vr-seg-btn').forEach(b => b.classList.remove('is-active'));
+                    btn.classList.add('is-active');
+                    const isYes = btn.dataset.yn === 'yes';
+                    revealEls.forEach(id => document.getElementById(id).classList.toggle('hidden', !isYes));
+                    if (isYes && onFirstYes) onFirstYes();
+                });
+            });
+        }
+
+        function resetYesNo(key) {
+            const g = WIZ_YESNO_GROUPS[key];
+            if (!g) return;
+            g.seg.querySelectorAll('.vr-seg-btn').forEach(b => b.classList.toggle('is-active', b.dataset.yn === 'no'));
+            g.revealEls.forEach(id => document.getElementById(id).classList.add('hidden'));
+        }
+
+        const DEBT_CATEGORY_LABEL = { loan: 'Empréstimo', financing: 'Financiamento', consortium: 'Consórcio' };
+
+        // ===================== WIZARD A — RAIO-X FINANCEIRO (PRIMEIRO ACESSO) =====================
+        let faIncomeKind = 'salary'; // 'salary' (recorrente) | 'variable' (pontual)
+        let faAfterMode = 'app';     // 'app' (dono/assinante) | 'partner' (convidado por código)
+
+        function setFaIncomeKind(kind) {
+            faIncomeKind = kind;
+            document.querySelectorAll('#fa-income-kind [data-income-kind]').forEach(b => {
                 b.classList.toggle('is-active', b.dataset.incomeKind === kind);
             });
-            document.getElementById('onb-income-hint').innerText = kind === 'salary'
-                ? 'Renda fixa repete automaticamente todo mês. Você pode editar depois.'
-                : 'Renda variável entra só neste mês — você lança as próximas quando receber.';
         }
 
-        function addOnbFixedRow(desc = '', amount = '') {
-            const box = document.getElementById('onb-fixed-rows');
-            const row = document.createElement('div');
-            row.className = 'onb-fixed-row flex items-center gap-2';
-            const d = document.createElement('input');
-            d.type = 'text'; d.className = 'onb-fixed-desc vr-field flex-1'; d.placeholder = 'Descrição';
-            d.value = desc;
-            const a = document.createElement('input');
-            a.type = 'number'; a.step = '0.01'; a.min = '0'; a.className = 'onb-fixed-amount vr-field w-28 font-semibold';
-            a.placeholder = '0,00'; a.value = amount;
-            const btn = document.createElement('button');
-            btn.type = 'button'; btn.className = 'onb-fixed-del text-muted hover:text-rose-500 p-2 shrink-0';
-            btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-            row.append(d, a, btn);
-            box.appendChild(row);
+        const faBalanceRowHtml = () => `
+            <input type="text" class="fa-balance-bank vr-field" placeholder="Banco / conta (ex: Nubank)">
+            <input type="number" step="0.01" min="0" class="fa-balance-amount vr-field font-semibold" placeholder="Saldo hoje (R$)">`;
+
+        const faCreditRowHtml = () => `
+            <input type="text" class="fa-credit-bank vr-field" placeholder="Cartão / banco (ex: Itaú)">
+            <input type="text" class="fa-credit-desc vr-field" placeholder="O que você comprou">
+            <div class="grid grid-cols-3 gap-1.5">
+                <input type="number" step="0.01" min="0" class="fa-credit-total vr-field font-semibold" placeholder="Valor total">
+                <input type="number" min="1" value="1" class="fa-credit-current vr-field" placeholder="Parcela atual">
+                <input type="number" min="1" value="1" class="fa-credit-installments vr-field" placeholder="Total parcelas">
+            </div>`;
+
+        const faDebtRowHtml = () => `
+            <input type="text" class="fa-debt-desc vr-field" placeholder="Descrição (ex: boleto atrasado)">
+            <div class="grid grid-cols-2 gap-1.5">
+                <input type="number" step="0.01" min="0" class="fa-debt-amount vr-field font-semibold" placeholder="Valor (R$)">
+                <input type="date" class="fa-debt-duedate vr-field">
+            </div>`;
+
+        const faRecDebtRowHtml = () => `
+            <select class="fa-recdebt-category vr-field">
+                <option value="loan">Empréstimo</option>
+                <option value="financing">Financiamento</option>
+                <option value="consortium">Consórcio</option>
+            </select>
+            <input type="text" class="fa-recdebt-desc vr-field" placeholder="Descrição (ex: Empréstimo Banco X)">
+            <input type="number" step="0.01" min="0" class="fa-recdebt-amount vr-field font-semibold" placeholder="Valor mensal (R$)">`;
+
+        const faInvestRowHtml = () => `
+            <select class="fa-invest-kind vr-field">
+                <option value="Caixinha / objetivo">Caixinha / objetivo (ex: viagem)</option>
+                <option value="Reserva de emergência">Reserva de emergência</option>
+                <option value="Renda fixa / Ações">Renda fixa / Ações</option>
+                <option value="Outro investimento">Outro</option>
+            </select>
+            <input type="text" class="fa-invest-name vr-field" placeholder="Nome (ex: Viagem pro Japão)">
+            <input type="number" step="0.01" min="0" class="fa-invest-amount vr-field font-semibold" placeholder="Quanto já tem guardado (R$)">`;
+
+        function initFirstAccessWizard(afterMode) {
+            faAfterMode = afterMode;
+            document.getElementById('fa-name').value = myProfile?.full_name || activeUser?.user_metadata?.full_name || '';
+            document.getElementById('fa-income').value = '';
+            document.getElementById('fa-goal').value = '';
+            setFaIncomeKind('salary');
+            ['fa-balance-rows', 'fa-credit-rows', 'fa-debt-rows', 'fa-recdebt-rows', 'fa-invest-rows'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+            ['balance', 'credit', 'debt', 'recdebt', 'invest'].forEach(resetYesNo);
+            faWizard.show(0);
+            showScreen('screen-first-access');
         }
 
-        function initOnboarding() {
-            document.getElementById('form-onboarding').reset();
-            setOnbIncomeKind('salary');
-            const box = document.getElementById('onb-fixed-rows');
-            box.innerHTML = '';
-            ONB_DEFAULT_FIXED.forEach(label => addOnbFixedRow(label, ''));
-            updateOnbSurplus();
-        }
+        async function submitFirstAccessWizard() {
+            const nextBtn = document.getElementById('btn-fa-next');
+            const backBtn = document.getElementById('btn-fa-back');
+            const original = nextBtn.innerHTML;
+            nextBtn.disabled = true;
+            backBtn.disabled = true;
+            nextBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
 
-        function onbCollectFixed() {
-            return Array.from(document.querySelectorAll('.onb-fixed-row')).map(row => ({
-                description: (row.querySelector('.onb-fixed-desc')?.value || '').trim(),
-                amount: parseFloat(row.querySelector('.onb-fixed-amount')?.value) || 0
-            })).filter(r => r.amount > 0);
-        }
+            try {
+                const name = document.getElementById('fa-name').value.trim();
+                const income = parseFloat(document.getElementById('fa-income').value) || 0;
+                const goal = parseFloat(document.getElementById('fa-goal').value) || 0;
+                const startYm = ymOf(viewYear, viewMonth);
+                const nowIso = new Date().toISOString();
+                const txBase = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
 
-        function updateOnbSurplus() {
-            const income = parseFloat(document.getElementById('onb-income')?.value) || 0;
-            const invest = parseFloat(document.getElementById('onb-invest')?.value) || 0;
-            const fixedTotal = onbCollectFixed().reduce((s, r) => s + r.amount, 0);
-            const surplus = income - fixedTotal - invest;
-            const el = document.getElementById('onb-surplus');
-            el.innerText = moneyBR(surplus);
-            el.className = `font-display font-bold text-lg ${surplus > 0 ? 'text-emerald-600' : surplus < 0 ? 'text-rose-500' : 'text-ink'}`;
-        }
+                if (name) {
+                    await supabase.from('profiles').update({ full_name: name }).eq('id', activeUser.id);
+                    document.getElementById('app-user-name').innerText = name;
+                }
 
-        async function submitOnboarding() {
-            const income = parseFloat(document.getElementById('onb-income').value) || 0;
-            const invest = parseFloat(document.getElementById('onb-invest').value) || 0;
-            const fixed = onbCollectFixed();
+                const txRows = [];
+                const recRows = [];
 
-            if (!(income > 0) && !fixed.length && !(invest > 0)) {
-                showToast('Informe ao menos sua renda para começar.', 'error');
-                return;
+                if (income > 0) {
+                    if (faIncomeKind === 'salary') recRows.push({ user_id: activeUser?.id, group_id: myGroupId, type: 'income', description: 'Salário', amount: income, start_ym: startYm });
+                    else txRows.push({ ...txBase, type: 'income', amount: income, description: 'Renda do mês' });
+                }
+                if (goal > 0) txRows.push({ ...txBase, type: 'invest', amount: goal, description: 'Meta de investimento' });
+
+                // Saldo em conta → cards (checking, com o saldo informado).
+                const balanceCards = collectRows('fa-balance-rows', { bank: '.fa-balance-bank', amount: '.fa-balance-amount' })
+                    .filter(r => (parseFloat(r.amount) || 0) > 0)
+                    .map(r => ({ user_id: activeUser.id, name: r.bank.trim() || 'Conta', type: 'checking', initial_balance: parseFloat(r.amount) || 0, initial_balance_at: nowIso }));
+                if (balanceCards.length) {
+                    const { error } = await supabase.from('cards').insert(balanceCards);
+                    if (error) throw error;
+                }
+
+                // Cartão de crédito parcelado → cards (credit) + transactions parceladas.
+                const creditItems = collectRows('fa-credit-rows', {
+                    bank: '.fa-credit-bank', desc: '.fa-credit-desc', total: '.fa-credit-total',
+                    current: '.fa-credit-current', installments: '.fa-credit-installments'
+                }).filter(r => (parseFloat(r.total) || 0) > 0);
+
+                let creditCardIds = [];
+                if (creditItems.length) {
+                    const payload = creditItems.map(r => ({ user_id: activeUser.id, name: r.bank.trim() || 'Cartão de crédito', type: 'credit' }));
+                    const { data, error } = await supabase.from('cards').insert(payload).select('id');
+                    if (error) throw error;
+                    creditCardIds = (data || []).map(c => c.id);
+                }
+                creditItems.forEach((r, idx) => {
+                    const total = parseFloat(r.total) || 0;
+                    const installments = Math.max(1, parseInt(r.installments, 10) || 1);
+                    const current = Math.min(Math.max(1, parseInt(r.current, 10) || 1), installments);
+                    const valorParcela = Math.round((total / installments) * 100) / 100;
+                    const cardId = creditCardIds[idx] || null;
+                    const baseDate = new Date();
+                    for (let i = current; i <= installments; i++) {
+                        const dataParcela = new Date(baseDate.getFullYear(), baseDate.getMonth() + (i - current), baseDate.getDate());
+                        txRows.push({
+                            user_id: activeUser.id, group_id: myGroupId, type: 'free',
+                            amount: valorParcela, description: r.desc.trim() || 'Compra parcelada', card_id: cardId,
+                            current_installment: i, total_installments: installments, created_at: dataParcela.toISOString()
+                        });
+                    }
+                });
+
+                // Dívida pontual (sem recorrência) → debts.
+                const debtRows = collectRows('fa-debt-rows', { desc: '.fa-debt-desc', amount: '.fa-debt-amount', dueDate: '.fa-debt-duedate' })
+                    .filter(r => (parseFloat(r.amount) || 0) > 0)
+                    .map(r => ({ user_id: activeUser.id, group_id: myGroupId, description: r.desc.trim() || 'Dívida', amount: parseFloat(r.amount) || 0, due_date: r.dueDate || null }));
+                if (debtRows.length) {
+                    const { error } = await supabase.from('debts').insert(debtRows);
+                    if (error) throw error;
+                }
+
+                // Dívida recorrente (empréstimo/financiamento/consórcio) → recurring_fixed.
+                collectRows('fa-recdebt-rows', { category: '.fa-recdebt-category', desc: '.fa-recdebt-desc', amount: '.fa-recdebt-amount' })
+                    .filter(r => (parseFloat(r.amount) || 0) > 0)
+                    .forEach(r => recRows.push({
+                        user_id: activeUser?.id, group_id: myGroupId, type: 'fixed', debt_category: r.category,
+                        description: r.desc.trim() || DEBT_CATEGORY_LABEL[r.category] || 'Dívida recorrente',
+                        amount: parseFloat(r.amount) || 0, start_ym: startYm
+                    }));
+
+                if (txRows.length) {
+                    const { error } = await supabase.from('transactions').insert(txRows);
+                    if (error) throw error;
+                }
+                if (recRows.length) {
+                    const { error } = await supabase.from('recurring_fixed').insert(recRows);
+                    if (error) throw error;
+                }
+
+                // Investimentos existentes → Desejos (wish já com o aporte inicial).
+                const investItems = collectRows('fa-invest-rows', { kind: '.fa-invest-kind', name: '.fa-invest-name', amount: '.fa-invest-amount' })
+                    .filter(r => (parseFloat(r.amount) || 0) > 0);
+                for (const inv of investItems) {
+                    const title = inv.name.trim() || inv.kind;
+                    const amount = parseFloat(inv.amount) || 0;
+                    const { data: wishId, error: wishErr } = await supabase.rpc('create_wish', { wish_title: title, wish_amount: amount, wish_scope: 'personal' });
+                    if (wishErr) throw wishErr;
+                    const { error: contribErr } = await supabase.from('wish_contributions').insert([{ wish_id: wishId, user_id: activeUser.id, amount }]);
+                    if (contribErr) throw contribErr;
+                }
+
+                showToast(`Tudo pronto${name ? ', ' + name.split(' ')[0] : ''}! Bem-vindo(a) à sua Vida Rica. ✨`);
+
+                if (faAfterMode === 'partner') {
+                    await initPartnerOnboarding();
+                    showScreen('screen-partner-onboarding');
+                } else {
+                    openAppData();
+                }
+            } catch (err) {
+                showToast('Erro ao salvar: ' + (err?.message || err), 'error');
+                nextBtn.disabled = false;
+                backBtn.disabled = false;
+                nextBtn.innerHTML = original;
             }
+        }
 
-            const btn = document.querySelector('#form-onboarding button[type="submit"]');
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
-
-            const nowIso = new Date().toISOString();
-            const startYm = ymOf(viewYear, viewMonth);
-            const base = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
-
-            // Lançamentos pontuais do mês: meta de investimento, e renda se for variável.
-            const rows = [];
-            if (income > 0 && onbIncomeKind === 'variable') rows.push({ ...base, type: 'income', amount: income, description: 'Renda do mês' });
-            if (invest > 0) rows.push({ ...base, type: 'invest', amount: invest, description: 'Meta de investimento' });
-
-            if (rows.length) {
-                const { error } = await supabase.from('transactions').insert(rows);
-                if (error) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar: ' + error.message, 'error'); return; }
+        const faWizard = createStepWizard({
+            stepsContainerId: 'fa-steps',
+            dotsContainerId: 'fa-dots',
+            backBtnId: 'btn-fa-back',
+            nextBtnId: 'btn-fa-next',
+            getNextLabel: (i, total) => i === total - 1 ? 'Concluir e ver meu painel' : 'Continuar',
+            onNext: async (index, isLast) => {
+                if (index === 0) {
+                    const name = document.getElementById('fa-name').value.trim();
+                    if (!name) { showToast('Me conta seu nome pra gente continuar :)', 'error'); return false; }
+                }
+                if (isLast) { await submitFirstAccessWizard(); return false; }
+                return true;
             }
+        });
 
-            // Recorrentes (repetem mês a mês): salário fixo + gastos fixos.
-            const recRows = [];
-            if (income > 0 && onbIncomeKind === 'salary') {
-                recRows.push({ user_id: activeUser?.id, group_id: myGroupId, type: 'income', description: 'Salário', amount: income, start_ym: startYm });
-            }
-            fixed.forEach(r => recRows.push({
-                user_id: activeUser?.id, group_id: myGroupId, type: 'fixed',
-                description: r.description || 'Gasto fixo', amount: r.amount, start_ym: startYm
-            }));
-            if (recRows.length) {
-                const { error: recErr } = await supabase.from('recurring_fixed').insert(recRows);
-                if (recErr) { btn.disabled = false; btn.innerHTML = original; showToast('Erro ao salvar recorrentes: ' + recErr.message, 'error'); return; }
-            }
+        // ===================== WIZARD B — GASTOS FIXOS GUIADOS =====================
+        let feFixedExpensesWizardShown = false; // no máximo uma vez por sessão
 
-            btn.disabled = false;
-            btn.innerHTML = original;
-            showToast('Tudo pronto! Bem-vindo(a) à sua Vida Rica. ✨');
-            openAppData();
+        const feSubRowHtml = (name = '') => `
+            <input type="text" class="fe-sub-name vr-field" placeholder="Nome da assinatura" value="${escapeHtml(name)}">
+            <input type="number" step="0.01" min="0" class="fe-sub-amount vr-field font-semibold" placeholder="Valor mensal (R$)">`;
+
+        function initFixedExpensesWizard() {
+            ['fe-housing-amount', 'fe-condo-amount', 'fe-iptu-amount', 'fe-car-financing', 'fe-car-insurance',
+             'fe-car-parking', 'fe-power-amount', 'fe-water-amount', 'fe-gas-amount', 'fe-internet-amount', 'fe-phone-amount'
+            ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            document.getElementById('fe-subs-rows').innerHTML = '';
+            document.querySelectorAll('#fe-housing-kind [data-housing-kind]').forEach(b => b.classList.toggle('is-active', b.dataset.housingKind === 'rent'));
+            ['housing', 'car', 'subs'].forEach(resetYesNo);
+            feWizard.show(0);
+            showScreen('screen-fixed-expenses');
+        }
+
+        async function submitFixedExpensesWizard() {
+            const nextBtn = document.getElementById('btn-fe-next');
+            const backBtn = document.getElementById('btn-fe-back');
+            const original = nextBtn.innerHTML;
+            nextBtn.disabled = true;
+            backBtn.disabled = true;
+            nextBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
+
+            try {
+                const startYm = ymOf(viewYear, viewMonth);
+                const val = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+                const housingKind = document.querySelector('#fe-housing-kind [data-housing-kind].is-active')?.dataset.housingKind === 'financing' ? 'Financiamento' : 'Aluguel';
+
+                const items = [];
+                if (val('fe-housing-amount') > 0) items.push({ description: housingKind, amount: val('fe-housing-amount') });
+                if (val('fe-condo-amount') > 0) items.push({ description: 'Condomínio', amount: val('fe-condo-amount') });
+                if (val('fe-iptu-amount') > 0) items.push({ description: 'IPTU', amount: val('fe-iptu-amount') });
+                if (val('fe-car-financing') > 0) items.push({ description: 'Financiamento do carro', amount: val('fe-car-financing') });
+                if (val('fe-car-insurance') > 0) items.push({ description: 'Seguro do carro', amount: val('fe-car-insurance') });
+                if (val('fe-car-parking') > 0) items.push({ description: 'Estacionamento fixo', amount: val('fe-car-parking') });
+                if (val('fe-power-amount') > 0) items.push({ description: 'Energia / luz', amount: val('fe-power-amount') });
+                if (val('fe-water-amount') > 0) items.push({ description: 'Água', amount: val('fe-water-amount') });
+                if (val('fe-gas-amount') > 0) items.push({ description: 'Gás', amount: val('fe-gas-amount') });
+                if (val('fe-internet-amount') > 0) items.push({ description: 'Internet fixa', amount: val('fe-internet-amount') });
+                if (val('fe-phone-amount') > 0) items.push({ description: 'Celular', amount: val('fe-phone-amount') });
+
+                collectRows('fe-subs-rows', { name: '.fe-sub-name', amount: '.fe-sub-amount' })
+                    .filter(r => (parseFloat(r.amount) || 0) > 0)
+                    .forEach(r => items.push({ description: r.name.trim() || 'Assinatura', amount: parseFloat(r.amount) || 0 }));
+
+                if (items.length) {
+                    const recRows = items.map(item => ({
+                        user_id: activeUser?.id, group_id: myGroupId, type: 'fixed',
+                        description: item.description, amount: item.amount, start_ym: startYm
+                    }));
+                    const { error } = await supabase.from('recurring_fixed').insert(recRows);
+                    if (error) throw error;
+                }
+
+                showToast(items.length ? 'Gastos fixos cadastrados — repetem todo mês!' : 'Tudo certo!');
+                showScreen('screen-app');
+                fetchDashboardAndTransactions();
+            } catch (err) {
+                showToast('Erro ao salvar: ' + (err?.message || err), 'error');
+            } finally {
+                nextBtn.disabled = false;
+                backBtn.disabled = false;
+                nextBtn.innerHTML = original;
+            }
+        }
+
+        const feWizard = createStepWizard({
+            stepsContainerId: 'fe-steps',
+            dotsContainerId: 'fe-dots',
+            backBtnId: 'btn-fe-back',
+            nextBtnId: 'btn-fe-next',
+            getNextLabel: (i, total) => i === total - 1 ? 'Concluir e ver meus lançamentos' : 'Continuar',
+            onNext: async (index, isLast) => {
+                if (isLast) { await submitFixedExpensesWizard(); return false; }
+                return true;
+            }
+        });
+
+        // Abre o Wizard B (uma vez por sessão) se o grupo ainda não tem nenhum gasto fixo cadastrado.
+        async function maybeStartFixedExpensesWizard() {
+            if (feFixedExpensesWizardShown) return;
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { count, error } = await supabase
+                    .from('recurring_fixed')
+                    .select('id', { count: 'exact', head: true })
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .eq('type', 'fixed');
+                if (error || (count || 0) > 0) return;
+            } catch (_) { return; }
+            feFixedExpensesWizardShown = true;
+            initFixedExpensesWizard();
         }
 
         // ===================== ONBOARDING PARCERIA =====================
@@ -1565,13 +2126,17 @@
                 const tipoLabel = c.type === 'credit' ? 'Crédito' : 'Débito/Conta';
                 const safeName = escapeHtml(c.name);
                 selectHtml += `<option value="${c.id}">${safeName} (${tipoLabel})</option>`;
+                const hasBalance = c.type !== 'credit' && c.initial_balance != null;
+                const balanceLine = hasBalance
+                    ? `<span class="text-xs text-muted">Saldo informado: <b class="text-ink">${moneyBR(c.initial_balance)}</b>${c.initial_balance_at ? ` (${new Date(c.initial_balance_at).toLocaleDateString('pt-BR')})` : ''}</span>`
+                    : `<span class="text-xs text-muted">${tipoLabel}</span>`;
                 listHtml += `
                     <div class="flex justify-between items-center gap-2 bg-canvas p-3.5 rounded-2xl border border-line">
                         <div class="min-w-0 flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${c.type === 'credit' ? 'bg-brand-soft text-brand' : 'bg-indigo-50 text-indigo-500'}"><i class="fa-solid ${c.type === 'credit' ? 'fa-credit-card' : 'fa-building-columns'}"></i></div>
                             <div class="min-w-0">
                                 <span class="font-semibold text-ink block truncate">${safeName}</span>
-                                <span class="text-xs text-muted">${tipoLabel}</span>
+                                ${balanceLine}
                             </div>
                         </div>
                         <button type="button" data-del-card="${c.id}" class="text-muted hover:text-rose-500 shrink-0 p-2 rounded-lg transition-colors" title="Excluir cartão ou conta">
@@ -1630,6 +2195,80 @@
 
             showToast("Cartão/conta removido.");
             fetchCards();
+        }
+
+        // ===================== DÍVIDAS =====================
+        async function fetchDebts() {
+            const searchId = myGroupId || activeUser?.id;
+            const filter = `user_id.eq.${searchId},group_id.eq.${searchId}`;
+
+            let debts = [];
+            try {
+                const { data } = await supabase.from('debts').select('*').or(filter).order('status', { ascending: true }).order('created_at', { ascending: true });
+                debts = data || [];
+            } catch (_) { debts = []; }
+            renderDebtsList(debts);
+
+            let recurringDebts = [];
+            try {
+                const { data } = await supabase
+                    .from('recurring_fixed').select('*').or(filter)
+                    .eq('type', 'fixed').not('debt_category', 'is', null).neq('active', false);
+                recurringDebts = data || [];
+            } catch (_) { recurringDebts = []; }
+            renderRecurringDebtsList(recurringDebts);
+        }
+
+        function renderDebtsList(debts) {
+            const box = document.getElementById('debts-list');
+            if (!debts.length) {
+                box.innerHTML = `<p class="text-muted text-center py-4 text-sm">Nenhuma dívida pontual cadastrada.</p>`;
+                return;
+            }
+            box.innerHTML = debts.map(d => {
+                const paid = d.status === 'paid';
+                const due = d.due_date ? new Date(d.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : null;
+                return `
+                    <div class="flex justify-between items-center gap-2 bg-canvas p-3.5 rounded-2xl border border-line ${paid ? 'opacity-60' : ''}">
+                        <div class="min-w-0">
+                            <span class="font-semibold text-ink block truncate">${escapeHtml(d.description)}</span>
+                            <span class="text-xs text-muted">${moneyBR(d.amount)}${due ? ` · vence ${due}` : ''}${paid ? ' · paga' : ''}</span>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            ${!paid ? `<button type="button" data-pay-debt="${d.id}" class="text-emerald-600 hover:text-emerald-700 p-2 rounded-lg" title="Marcar como paga"><i class="fa-solid fa-circle-check text-sm"></i></button>` : ''}
+                            <button type="button" data-del-debt="${d.id}" class="text-muted hover:text-rose-500 p-2 rounded-lg" title="Excluir"><i class="fa-solid fa-trash text-sm"></i></button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderRecurringDebtsList(items) {
+            const wrap = document.getElementById('recurring-debts-wrap');
+            wrap.classList.toggle('hidden', !items.length);
+            if (!items.length) return;
+            document.getElementById('recurring-debts-list').innerHTML = items.map(r => `
+                <div class="flex justify-between items-center gap-2 bg-canvas p-3.5 rounded-2xl border border-line">
+                    <div class="min-w-0">
+                        <span class="font-semibold text-ink block truncate">${escapeHtml(r.description)}</span>
+                        <span class="text-xs text-muted">${moneyBR(r.amount)} / mês</span>
+                    </div>
+                    <span class="vr-chip bg-brand-soft text-brand shrink-0">${DEBT_CATEGORY_LABEL[r.debt_category] || 'Dívida'}</span>
+                </div>`).join('');
+        }
+
+        async function markDebtPaid(debtId) {
+            const { error } = await supabase.from('debts').update({ status: 'paid' }).eq('id', debtId);
+            if (error) { showToast("Erro ao atualizar: " + error.message, "error"); return; }
+            showToast("Dívida marcada como paga!");
+            fetchDebts();
+        }
+
+        async function deleteDebt(debtId) {
+            if (!confirm("Remover esta dívida?")) return;
+            const { error } = await supabase.from('debts').delete().eq('id', debtId);
+            if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
+            showToast("Dívida removida.");
+            fetchDebts();
         }
 
         // ===================== DESEJOS =====================
@@ -2171,8 +2810,9 @@
             document.getElementById('form-edit-rec').addEventListener('submit', (e) => { e.preventDefault(); saveEditRecurring(); });
 
             // ---- Abas de navegação ----
-            document.getElementById('nav-btn-launch').addEventListener('click', () => switchTab('panel-launch', 'nav-btn-launch'));
+            document.getElementById('nav-btn-launch').addEventListener('click', () => { switchTab('panel-launch', 'nav-btn-launch'); maybeStartFixedExpensesWizard(); });
             document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
+            document.getElementById('nav-btn-debts').addEventListener('click', () => { switchTab('panel-debts', 'nav-btn-debts'); fetchDebts(); });
             document.getElementById('nav-btn-wishes').addEventListener('click', () => { switchTab('panel-wishes', 'nav-btn-wishes'); fetchWishes(); });
             document.getElementById('nav-btn-mentorship').addEventListener('click', () => { switchTab('panel-mentorship', 'nav-btn-mentorship'); fetchMentorshipClient(); });
             document.getElementById('nav-btn-partner').addEventListener('click', () => switchTab('panel-partner', 'nav-btn-partner'));
@@ -2210,18 +2850,34 @@
                 showScreen('screen-auth');
             });
 
-            // ---- Cadastro inicial (onboarding) ----
-            document.querySelectorAll('#onb-income-kind [data-income-kind]').forEach(b => {
-                b.addEventListener('click', () => setOnbIncomeKind(b.dataset.incomeKind));
+            // ---- Wizard A: raio-x financeiro (primeiro acesso) ----
+            document.querySelectorAll('#fa-income-kind [data-income-kind]').forEach(b => {
+                b.addEventListener('click', () => setFaIncomeKind(b.dataset.incomeKind));
             });
-            document.getElementById('btn-onb-add-fixed').addEventListener('click', () => { addOnbFixedRow(); });
-            document.getElementById('onb-fixed-rows').addEventListener('click', (e) => {
-                const del = e.target.closest('.onb-fixed-del');
-                if (del) { del.closest('.onb-fixed-row')?.remove(); updateOnbSurplus(); }
+            wireYesNo('balance', ['fa-balance-rows', 'btn-fa-add-balance'], () => { if (!document.querySelector('#fa-balance-rows .wiz-row')) wizAddRow('fa-balance-rows', faBalanceRowHtml()); });
+            wireYesNo('credit', ['fa-credit-rows', 'btn-fa-add-credit'], () => { if (!document.querySelector('#fa-credit-rows .wiz-row')) wizAddRow('fa-credit-rows', faCreditRowHtml()); });
+            wireYesNo('debt', ['fa-debt-rows', 'btn-fa-add-debt'], () => { if (!document.querySelector('#fa-debt-rows .wiz-row')) wizAddRow('fa-debt-rows', faDebtRowHtml()); });
+            wireYesNo('recdebt', ['fa-recdebt-rows', 'btn-fa-add-recdebt'], () => { if (!document.querySelector('#fa-recdebt-rows .wiz-row')) wizAddRow('fa-recdebt-rows', faRecDebtRowHtml()); });
+            wireYesNo('invest', ['fa-invest-rows', 'btn-fa-add-invest'], () => { if (!document.querySelector('#fa-invest-rows .wiz-row')) wizAddRow('fa-invest-rows', faInvestRowHtml()); });
+            document.getElementById('btn-fa-add-balance').addEventListener('click', () => wizAddRow('fa-balance-rows', faBalanceRowHtml()));
+            document.getElementById('btn-fa-add-credit').addEventListener('click', () => wizAddRow('fa-credit-rows', faCreditRowHtml()));
+            document.getElementById('btn-fa-add-debt').addEventListener('click', () => wizAddRow('fa-debt-rows', faDebtRowHtml()));
+            document.getElementById('btn-fa-add-recdebt').addEventListener('click', () => wizAddRow('fa-recdebt-rows', faRecDebtRowHtml()));
+            document.getElementById('btn-fa-add-invest').addEventListener('click', () => wizAddRow('fa-invest-rows', faInvestRowHtml()));
+
+            // ---- Wizard B: gastos fixos guiados ----
+            wireYesNo('housing', ['fe-housing-fields'], null);
+            wireYesNo('car', ['fe-car-fields'], null);
+            wireYesNo('subs', ['fe-subs-chips', 'fe-subs-rows'], null);
+            document.querySelectorAll('#fe-housing-kind [data-housing-kind]').forEach(b => {
+                b.addEventListener('click', () => {
+                    document.querySelectorAll('#fe-housing-kind [data-housing-kind]').forEach(x => x.classList.remove('is-active'));
+                    b.classList.add('is-active');
+                });
             });
-            document.getElementById('form-onboarding').addEventListener('input', updateOnbSurplus);
-            document.getElementById('form-onboarding').addEventListener('submit', (e) => { e.preventDefault(); submitOnboarding(); });
-            document.getElementById('btn-onb-skip').addEventListener('click', () => openAppData());
+            document.querySelectorAll('#fe-subs-chips [data-sub-chip]').forEach(chip => {
+                chip.addEventListener('click', () => wizAddRow('fe-subs-rows', feSubRowHtml(chip.dataset.subChip)));
+            });
 
             // ---- Onboarding parceria ----
             document.getElementById('btn-ponb-next').addEventListener('click', () => {
@@ -2460,6 +3116,34 @@
             document.getElementById('cards-list').addEventListener('click', (e) => {
                 const del = e.target.closest('[data-del-card]');
                 if (del) deleteCardOrAccount(del.dataset.delCard);
+            });
+
+            // ---- Salvar dívida pontual ----
+            document.getElementById('form-debt').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const description = document.getElementById('debt-description').value.trim();
+                const amount = parseFloat(document.getElementById('debt-amount').value);
+                const dueDate = document.getElementById('debt-due-date').value || null;
+                if (!(amount > 0)) { showToast("Informe um valor válido.", "error"); return; }
+
+                const debtBtn = e.target.querySelector('button[type="submit"]');
+                const debtBtnText = debtBtn.innerHTML;
+                debtBtn.disabled = true;
+                debtBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvando...';
+                const { error } = await supabase.from('debts').insert([{ user_id: activeUser?.id, group_id: myGroupId, description, amount, due_date: dueDate }]);
+                debtBtn.disabled = false;
+                debtBtn.innerHTML = debtBtnText;
+                if (error) { showToast("Erro ao salvar dívida: " + error.message, "error"); return; }
+
+                showToast("Dívida cadastrada!");
+                document.getElementById('form-debt').reset();
+                fetchDebts();
+            });
+            document.getElementById('debts-list').addEventListener('click', (e) => {
+                const pay = e.target.closest('[data-pay-debt]');
+                if (pay) markDebtPaid(pay.dataset.payDebt);
+                const del = e.target.closest('[data-del-debt]');
+                if (del) deleteDebt(del.dataset.delDebt);
             });
 
             // ---- Cancelar assinatura ----
