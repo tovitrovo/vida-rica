@@ -814,9 +814,100 @@ alter table public.wishes drop constraint if exists wishes_group_id_fkey;
 --     wishes/wish_contributions e já cobertos pelas seções 10/11 acima.
 -- ============================================================================
 
+-- 16.0. recurring_fixed: a tabela nunca foi incluída neste script completo
+--       (só existia via migrations incrementais) — numa instalação nova, o
+--       ALTER da seção 16.2 falharia com "relation does not exist". Criamos
+--       aqui o schema final (base + type + shared), na mesma forma das
+--       migrations 20260627010000/20260627020000/20260628010000.
+create table if not exists public.recurring_fixed (
+    id          uuid primary key default gen_random_uuid(),
+    user_id     uuid not null default auth.uid(),
+    group_id    uuid not null,
+    description text not null,
+    amount      numeric(12, 2) not null check (amount >= 0),
+    start_ym    text not null,
+    end_ym      text,
+    skip_yms    text[] not null default '{}',
+    active      boolean not null default true,
+    created_at  timestamptz not null default now()
+);
+
+alter table public.recurring_fixed add column if not exists type text not null default 'fixed';
+alter table public.recurring_fixed add column if not exists shared boolean not null default true;
+
+do $$
+begin
+    if not exists (select 1 from pg_constraint where conname = 'recurring_fixed_type_chk') then
+        alter table public.recurring_fixed
+            add constraint recurring_fixed_type_chk check (type in ('income', 'fixed'));
+    end if;
+end $$;
+
+create index if not exists idx_recurring_fixed_group on public.recurring_fixed (group_id);
+create index if not exists idx_recurring_fixed_user  on public.recurring_fixed (user_id);
+
+alter table public.recurring_fixed enable row level security;
+
+drop policy if exists "recurring_fixed_select_group" on public.recurring_fixed;
+create policy "recurring_fixed_select_group" on public.recurring_fixed
+    for select using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+        or public.is_admin()
+    );
+
+drop policy if exists "recurring_fixed_insert_own" on public.recurring_fixed;
+create policy "recurring_fixed_insert_own" on public.recurring_fixed
+    for insert with check (auth.uid() = user_id);
+
+drop policy if exists "recurring_fixed_update_group" on public.recurring_fixed;
+create policy "recurring_fixed_update_group" on public.recurring_fixed
+    for update using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+    ) with check (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+    );
+
+drop policy if exists "recurring_fixed_delete_group" on public.recurring_fixed;
+create policy "recurring_fixed_delete_group" on public.recurring_fixed
+    for delete using (
+        auth.uid() = user_id
+        or group_id = auth.uid()
+        or group_id = public.current_group_id()
+    );
+
+grant select, insert, update, delete on table public.recurring_fixed to authenticated;
+grant all privileges on table public.recurring_fixed to service_role;
+
 -- 16.1. cards: retrato do saldo informado no cadastro (não é saldo vivo).
 alter table public.cards add column if not exists initial_balance    numeric(14, 2);
 alter table public.cards add column if not exists initial_balance_at timestamptz;
+
+-- 16.1.1. profiles: flag de conclusão do raio-x financeiro (Wizard A). Sem
+--         isso, quem só cadastra saldo/dívida pontual/investimento (sem
+--         gerar transaction/recurring_fixed) cairia no wizard de novo no
+--         próximo login e duplicaria os dados.
+alter table public.profiles add column if not exists first_access_completed_at timestamptz;
+grant update (first_access_completed_at) on table public.profiles to authenticated;
+
+update public.profiles p
+set first_access_completed_at = now()
+where p.first_access_completed_at is null
+  and (
+      exists (
+          select 1 from public.transactions t
+          where t.user_id = p.id or t.group_id = p.id or (p.group_id is not null and t.group_id = p.group_id)
+      )
+      or exists (
+          select 1 from public.recurring_fixed r
+          where r.user_id = p.id or r.group_id = p.id or (p.group_id is not null and r.group_id = p.group_id)
+      )
+  );
 
 -- 16.2. recurring_fixed: marcador de dívida recorrente (empréstimo/
 --       financiamento/consórcio) — continua contando no pilar "Fixos".

@@ -1364,8 +1364,15 @@
                 return;
             }
 
-            // Primeiro acesso sem nenhum lançamento → raio-x financeiro (Wizard A).
-            if (await groupHasNoTransactions()) {
+            // Primeiro acesso → raio-x financeiro (Wizard A). Usa o flag persistido do
+            // perfil (o wizard pode terminar sem criar transaction/recurring_fixed);
+            // se o perfil não carregou (timeout/erro), cai no heurístico antigo.
+            if (myProfile) {
+                if (!myProfile.first_access_completed_at) {
+                    initFirstAccessWizard('app');
+                    return;
+                }
+            } else if (await groupHasNoTransactions()) {
                 initFirstAccessWizard('app');
                 return;
             }
@@ -1686,10 +1693,14 @@
                 const nowIso = new Date().toISOString();
                 const txBase = { user_id: activeUser?.id, group_id: myGroupId, card_id: null, current_installment: 1, total_installments: 1, created_at: nowIso };
 
-                if (name) {
-                    await supabase.from('profiles').update({ full_name: name }).eq('id', activeUser.id);
-                    document.getElementById('app-user-name').innerText = name;
-                }
+                // Marca a conclusão do raio-x financeiro: o wizard pode terminar sem gerar
+                // nenhuma transaction/recurring_fixed (ex.: só saldo + investimento), então
+                // o gate de primeiro acesso não pode depender só dessas duas tabelas.
+                const profileUpdate = { first_access_completed_at: nowIso };
+                if (name) profileUpdate.full_name = name;
+                await supabase.from('profiles').update(profileUpdate).eq('id', activeUser.id);
+                if (myProfile) myProfile.first_access_completed_at = nowIso;
+                if (name) document.getElementById('app-user-name').innerText = name;
 
                 const txRows = [];
                 const recRows = [];

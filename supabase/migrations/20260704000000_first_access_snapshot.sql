@@ -6,6 +6,11 @@
 --    (empréstimo/financiamento/consórcio) sem sair do fluxo normal de gasto
 --    fixo — continuam contando no pilar "Fixos" do dashboard.
 -- 3. Tabela nova debts, só para dívidas pontuais (sem recorrência mensal).
+-- 4. profiles ganha first_access_completed_at: o Wizard A pode terminar sem
+--    criar nenhuma transaction/recurring_fixed (ex.: só saldo + dívida pontual
+--    + investimento), então o gate de primeiro acesso não pode depender só
+--    dessas duas tabelas — senão a pessoa cairia no wizard de novo no próximo
+--    login e duplicaria os dados do raio-x.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -13,6 +18,28 @@
 -- -----------------------------------------------------------------------------
 alter table public.cards add column if not exists initial_balance    numeric(14, 2);
 alter table public.cards add column if not exists initial_balance_at timestamptz;
+
+-- -----------------------------------------------------------------------------
+-- 1.1. profiles: flag de conclusão do raio-x financeiro (Wizard A).
+-- -----------------------------------------------------------------------------
+alter table public.profiles add column if not exists first_access_completed_at timestamptz;
+grant update (first_access_completed_at) on table public.profiles to authenticated;
+
+-- Backfill: quem já usa o app (tem transações ou gastos fixos, próprios ou do
+-- grupo) não deve ser pego pelo novo wizard obrigatório.
+update public.profiles p
+set first_access_completed_at = now()
+where p.first_access_completed_at is null
+  and (
+      exists (
+          select 1 from public.transactions t
+          where t.user_id = p.id or t.group_id = p.id or (p.group_id is not null and t.group_id = p.group_id)
+      )
+      or exists (
+          select 1 from public.recurring_fixed r
+          where r.user_id = p.id or r.group_id = p.id or (p.group_id is not null and r.group_id = p.group_id)
+      )
+  );
 
 -- -----------------------------------------------------------------------------
 -- 2. recurring_fixed: marcador de dívida recorrente.
