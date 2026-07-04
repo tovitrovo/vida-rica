@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -90,6 +91,15 @@
         /* Pílulas de filtro do extrato */
         .tx-filter-pill { font-size:.72rem; font-weight:600; padding:.3rem .7rem; border-radius:.7rem; background:#f1eff6; color:#7d7689; transition: all .15s; }
         .tx-filter-pill.is-active { background:#1a1626; color:#fff; }
+
+        /* Alerta de orçamento / vencimento no dashboard */
+        .vr-alert { display:flex; align-items:flex-start; gap:.5rem; font-size:.75rem; font-weight:600; padding:.65rem .8rem; border-radius:1rem; line-height:1.3; }
+        .vr-alert-warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+        .vr-alert-danger { background:#fef2f2; color:#be123c; border:1px solid #fecdd3; }
+
+        /* Toggle pequeno (compartilhado / privado) usado no lançamento */
+        .vr-toggle-chip { display:flex; align-items:center; gap:.4rem; font-size:.78rem; font-weight:600; padding:.55rem .8rem; border-radius:.85rem; border:1px solid var(--line); background:#faf9fc; color:#7d7689; cursor:pointer; user-select:none; transition: all .15s; }
+        .vr-toggle-chip input { accent-color:#7c5cfc; }
     </style>
 </head>
 <body class="bg-canvas text-ink min-h-screen flex flex-col pb-12 antialiased">
@@ -389,6 +399,9 @@
                 </div>
             </div>
 
+            <!-- ALERTAS: orçamento por categoria estourado / gasto fixo perto do vencimento -->
+            <div id="dash-alerts" class="space-y-2"></div>
+
             <!-- BREAKDOWN DOS PILARES -->
             <div class="grid grid-cols-3 gap-3">
                 <div class="vr-card p-3.5 text-center">
@@ -406,6 +419,18 @@
             </div>
             <div class="text-center -mt-2">
                 <span class="text-xs text-muted">Gastos livres no mês: <b id="dash-free-spent" class="text-ink font-semibold">R$ 0,00</b></span>
+            </div>
+
+            <!-- BREAKDOWN POR PESSOA (só aparece com parceria ativa) -->
+            <div id="dash-person-breakdown" class="hidden vr-card p-4 space-y-2.5">
+                <h5 class="font-display font-bold text-xs text-muted uppercase tracking-wide">Quem gastou o quê este mês</h5>
+                <div id="dash-person-list" class="space-y-2"></div>
+            </div>
+
+            <!-- EVOLUÇÃO MENSAL (últimos 6 meses) -->
+            <div class="vr-card p-4 space-y-2">
+                <h5 class="font-display font-bold text-xs text-muted uppercase tracking-wide">Evolução dos últimos 6 meses</h5>
+                <div class="relative" style="height:180px;"><canvas id="chart-monthly-evolution"></canvas></div>
             </div>
 
             <!-- NAVEGAÇÃO ENTRE ABAS -->
@@ -451,6 +476,39 @@
                         <select id="tx-card" class="vr-field">
                             <option value="">Dinheiro / Pix à vista</option>
                         </select>
+                    </div>
+
+                    <!-- Categoria (só gasto livre) -->
+                    <div id="tx-category-group" class="hidden">
+                        <label class="vr-label">Categoria</label>
+                        <input type="text" id="tx-category" list="tx-category-options" placeholder="Ex: Mercado, Lazer, Transporte..." class="vr-field">
+                        <datalist id="tx-category-options">
+                            <option value="Mercado"></option>
+                            <option value="Transporte"></option>
+                            <option value="Lazer"></option>
+                            <option value="Saúde"></option>
+                            <option value="Educação"></option>
+                            <option value="Delivery/Restaurante"></option>
+                            <option value="Outros"></option>
+                        </datalist>
+                    </div>
+
+                    <!-- Dia de vencimento (só gasto fixo recorrente) -->
+                    <div id="tx-due-day-group" class="hidden">
+                        <label class="vr-label">Dia do vencimento (opcional)</label>
+                        <input type="number" min="1" max="31" id="tx-due-day" placeholder="Ex: 10" class="vr-field">
+                    </div>
+
+                    <!-- Compartilhado / Privado (só saídas do casal/trisal) -->
+                    <div id="tx-sharing-group" class="hidden grid grid-cols-2 gap-2.5">
+                        <label id="tx-shared-wrap" class="vr-toggle-chip">
+                            <input type="checkbox" id="tx-shared" checked>
+                            <span>Compartilhado (entra no rateio)</span>
+                        </label>
+                        <label id="tx-private-wrap" class="vr-toggle-chip">
+                            <input type="checkbox" id="tx-private">
+                            <span>Privado (só eu vejo)</span>
+                        </label>
                     </div>
 
                     <!-- Parcelamento (só saídas pontuais) -->
@@ -501,6 +559,7 @@
                         <button data-tx-filter="invest" class="tx-filter-pill">Invest.</button>
                         <button data-tx-filter="free"   class="tx-filter-pill">Livre</button>
                     </div>
+                    <div id="tx-person-filters" class="flex gap-1.5 flex-wrap"></div>
                     <div id="transactions-list" class="space-y-1 max-h-72 overflow-y-auto pr-1 text-sm scroll-smooth"></div>
                 </div>
             </div>
@@ -582,6 +641,29 @@
                     </div>
                     <button type="submit" class="vr-btn vr-btn-spectrum">Fundir contas e sincronizar</button>
                 </form>
+
+                <!-- SALDO ENTRE PARCEIROS -->
+                <div id="balance-section" class="hidden pt-4 border-t border-line space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h5 class="font-display font-bold text-sm">Saldo entre vocês <span class="text-xs text-muted font-normal">(<span id="balance-month-label"></span>)</span></h5>
+                        <button id="btn-settle-balance" type="button" class="text-xs font-semibold text-brand bg-brand-soft px-2.5 py-1.5 rounded-lg">Quitar mês</button>
+                    </div>
+                    <p class="text-xs text-muted leading-snug -mt-2">Baseado nos lançamentos e gastos fixos marcados como <strong>Compartilhado</strong>, divididos igualmente entre os membros do grupo.</p>
+                    <div id="balance-list" class="space-y-2"></div>
+                </div>
+
+                <!-- ORÇAMENTO POR CATEGORIA -->
+                <div class="pt-4 border-t border-line space-y-3">
+                    <h5 class="font-display font-bold text-sm">Orçamento por categoria</h5>
+                    <p class="text-xs text-muted leading-snug -mt-2">Defina um limite mensal para as categorias de gasto livre do grupo. Vocês recebem um alerta no dashboard ao se aproximar do limite.</p>
+                    <div id="budgets-list" class="space-y-2"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="budget-new-category" list="tx-category-options" placeholder="Nova categoria" class="vr-field flex-1 text-sm">
+                        <input type="number" step="0.01" min="0" id="budget-new-limit" placeholder="Limite R$" class="vr-field w-28 text-sm">
+                        <button id="btn-add-budget" type="button" class="bg-brand-soft text-brand px-3.5 rounded-xl text-sm font-bold shrink-0"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+
                 <div class="pt-2 border-t border-line">
                     <button id="btn-cancel-subscription" type="button" class="w-full text-xs text-muted font-medium py-1">Cancelar minha assinatura</button>
                 </div>
@@ -740,6 +822,10 @@
                 <label class="vr-label">Valor (R$)</label>
                 <input type="number" step="0.01" min="0" id="edit-rec-amount" required class="vr-field font-semibold">
             </div>
+            <div id="edit-rec-due-day-group" class="hidden">
+                <label class="vr-label">Dia do vencimento (opcional)</label>
+                <input type="number" min="1" max="31" id="edit-rec-due-day" class="vr-field">
+            </div>
             <p class="text-xs text-muted">A alteração vale para este mês e os próximos.</p>
             <div class="space-y-2">
                 <button type="submit" class="vr-btn vr-btn-spectrum">Salvar</button>
@@ -771,6 +857,11 @@
         let planPrices = {};       // mapa "accountType|mentorship" -> amount
         let selectedAccount = 'individual'; // seleção na tela de planos
         let monthlySurplus = 0;    // sobra mensal (renda - saídas) p/ viabilidade de desejos
+        let groupMembers = [];      // membros do grupo (parceria): [{id, full_name}]
+        let activePersonFilter = 'all'; // 'all' ou id do membro no filtro do extrato
+        let cachedBudgets = [];     // orçamento por categoria do grupo
+        let cachedSettlements = []; // ajustes de quitação do mês visualizado
+        let monthlyChartInstance = null;
 
         // Navegação de mês no dashboard
         const _today = new Date();
@@ -834,6 +925,11 @@
 
             document.getElementById('tx-recurring-hint').classList.toggle('hidden', !isRecurring);
             document.getElementById('tx-card-group').classList.toggle('hidden', isRecurring);
+            document.getElementById('tx-category-group').classList.toggle('hidden', type !== 'free');
+            document.getElementById('tx-due-day-group').classList.toggle('hidden', type !== 'fixed');
+            const canShare = (type === 'fixed' || type === 'invest' || type === 'free');
+            document.getElementById('tx-sharing-group').classList.toggle('hidden', !canShare);
+            document.getElementById('tx-private-wrap').classList.toggle('hidden', type === 'fixed');
             document.getElementById('tx-installments-group').classList.toggle('hidden', !isPunctualExpense);
             document.getElementById('tx-installments-hint').classList.toggle('hidden', !(isPunctualExpense && installments > 1));
             document.getElementById('tx-amount-label').innerText =
@@ -1019,13 +1115,35 @@
             } catch (_) { return false; }
         }
 
-        function loadAppData() {
-            fetchDashboardAndTransactions();
+        async function loadAppData() {
+            await fetchGroupMembers();
+            renderPersonFilters();
+            await fetchDashboardAndTransactions();
+            fetchMonthlyHistory();
+            fetchBudgets();
             fetchCards();
             fetchWishes();
             const hasMentorship = isAdmin ||
                 (mySubscription && mySubscription.with_mentorship && mySubscription.status === 'active');
             if (hasMentorship) fetchMentorshipClient();
+        }
+
+        // ===================== PARCERIA: MEMBROS DO GRUPO =====================
+        async function fetchGroupMembers() {
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { data } = await supabase.from('profiles').select('id, full_name')
+                    .or(`id.eq.${searchId},group_id.eq.${searchId}`);
+                groupMembers = (data && data.length) ? data : [{ id: activeUser.id, full_name: 'Eu' }];
+            } catch (_) {
+                groupMembers = [{ id: activeUser?.id, full_name: 'Eu' }];
+            }
+        }
+
+        function memberName(userId) {
+            if (userId === activeUser?.id) return 'Eu';
+            const m = groupMembers.find(g => g.id === userId);
+            return m?.full_name || 'Parceiro(a)';
         }
 
         // ===================== ASSINATURA / PLANOS =====================
@@ -1348,6 +1466,7 @@
                     recurring: true, recurring_id: t.id, recurring_ym: ym,
                     type: t.type === 'income' ? 'income' : 'fixed', amount: Number(t.amount) || 0,
                     description: t.description, user_id: t.user_id, group_id: t.group_id,
+                    shared: t.shared !== false, is_private: false, category: null,
                     total_installments: 1, current_installment: 1,
                     created_at: monthStartIso
                 }));
@@ -1389,13 +1508,19 @@
 
             monthlySurplus = freeBalance;
             renderTransactions();
+            renderPersonBreakdown();
             if (cachedWishes.length) renderWishes();
+
+            await fetchSettlements();
+            renderBalance();
+            renderDashboardAlerts();
         }
 
         function renderTransactions() {
             const search = (document.getElementById('tx-search')?.value || '').toLowerCase().trim();
             const filtered = cachedTransactions.filter(tx => {
                 if (activeTxFilter !== 'all' && tx.type !== activeTxFilter) return false;
+                if (activePersonFilter !== 'all' && tx.user_id !== activePersonFilter) return false;
                 if (search && !(tx.description || '').toLowerCase().includes(search)) return false;
                 return true;
             });
@@ -1422,13 +1547,17 @@
                 const dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : "";
                 const canDelete = tx.recurring || tx.user_id === activeUser?.id;
                 const recIcon = tx.recurring ? `<i class="fa-solid fa-rotate text-muted text-[10px] ml-1" title="Gasto fixo recorrente"></i>` : '';
+                const privIcon = tx.is_private ? `<i class="fa-solid fa-lock text-muted text-[10px] ml-1" title="Privado"></i>` : '';
+                const sharedIcon = (tx.shared && groupMembers.length > 1) ? `<i class="fa-solid fa-people-arrows text-brand text-[10px] ml-1" title="Compartilhado"></i>` : '';
+                const authorTag = groupMembers.length > 1 ? `<span class="text-[11px] text-muted">${escapeHtml(memberName(tx.user_id))} ·</span>` : '';
                 html += `
                     <div class="flex items-center gap-3 py-2.5 px-1 border-b border-line/70 group">
                         <span class="w-2 h-2 rounded-full shrink-0 ${DOT[tx.type] || 'bg-muted'}"></span>
                         <div class="min-w-0 flex-1">
-                            <span class="font-semibold text-ink block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}${recIcon}</span>
+                            <span class="font-semibold text-ink block truncate">${escapeHtml(tx.description || 'Sem descrição')}${isParc}${recIcon}${sharedIcon}${privIcon}</span>
                             <div class="flex items-center gap-1.5 mt-0.5">
                                 <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded ${BADGE[tx.type] || ''}">${LABEL[tx.type] || tx.type}</span>
+                                ${authorTag}
                                 <span class="text-[11px] text-muted">${tx.recurring ? 'Todo mês' : dateStr}</span>
                             </div>
                         </div>
@@ -1440,6 +1569,334 @@
                     </div>`;
             });
             document.getElementById("transactions-list").innerHTML = html;
+        }
+
+        // ===================== FILTRO E BREAKDOWN POR PESSOA =====================
+        function renderPersonFilters() {
+            const box = document.getElementById('tx-person-filters');
+            if (!box) return;
+            if (groupMembers.length <= 1) {
+                box.innerHTML = '';
+                activePersonFilter = 'all';
+                return;
+            }
+            let html = `<button data-tx-person="all" class="tx-filter-pill ${activePersonFilter === 'all' ? 'is-active' : ''}">Todos</button>`;
+            groupMembers.forEach(m => {
+                html += `<button data-tx-person="${m.id}" class="tx-filter-pill ${activePersonFilter === m.id ? 'is-active' : ''}">${escapeHtml(memberName(m.id))}</button>`;
+            });
+            box.innerHTML = html;
+        }
+
+        function renderPersonBreakdown() {
+            const wrap = document.getElementById('dash-person-breakdown');
+            const list = document.getElementById('dash-person-list');
+            if (!wrap || !list) return;
+            if (groupMembers.length <= 1) { wrap.classList.add('hidden'); return; }
+
+            const spentByUser = {};
+            groupMembers.forEach(m => { spentByUser[m.id] = 0; });
+            cachedTransactions.forEach(tx => {
+                if (!['fixed', 'invest', 'free'].includes(tx.type)) return;
+                spentByUser[tx.user_id] = (spentByUser[tx.user_id] || 0) + (parseFloat(tx.amount) || 0);
+            });
+
+            const maxVal = Math.max(1, ...Object.values(spentByUser));
+            wrap.classList.remove('hidden');
+            list.innerHTML = groupMembers.map(m => {
+                const val = spentByUser[m.id] || 0;
+                const pct = Math.round((val / maxVal) * 100);
+                return `<div class="space-y-1">
+                    <div class="flex justify-between text-xs font-medium"><span class="text-ink">${escapeHtml(memberName(m.id))}</span><span class="text-muted">${moneyBR(val)}</span></div>
+                    <div class="w-full bg-line rounded-full h-1.5 overflow-hidden"><div class="h-full spectrum-bg" style="width:${pct}%"></div></div>
+                </div>`;
+            }).join('');
+        }
+
+        // ===================== SALDO ENTRE PARCEIROS (RATEIO) =====================
+        async function fetchSettlements() {
+            const searchId = myGroupId || activeUser?.id;
+            const ym = ymOf(viewYear, viewMonth);
+            try {
+                const { data } = await supabase.from('settlements').select('*')
+                    .eq('group_id', searchId).eq('ym', ym);
+                cachedSettlements = data || [];
+            } catch (_) { cachedSettlements = []; }
+        }
+
+        // Retorna o saldo líquido de cada membro no mês visualizado: positivo = a receber,
+        // negativo = a pagar. Rateio simples e igualitário entre os membros do grupo.
+        function computeBalance() {
+            const N = groupMembers.length || 1;
+            const paid = {};
+            groupMembers.forEach(m => { paid[m.id] = 0; });
+            let total = 0;
+            cachedTransactions.forEach(tx => {
+                if (!tx.shared || tx.is_private) return;
+                if (!['fixed', 'invest', 'free'].includes(tx.type)) return;
+                const amt = parseFloat(tx.amount) || 0;
+                paid[tx.user_id] = (paid[tx.user_id] || 0) + amt;
+                total += amt;
+            });
+            const shareEach = total / N;
+            const net = {};
+            groupMembers.forEach(m => {
+                const settled = cachedSettlements
+                    .filter(s => s.user_id === m.id)
+                    .reduce((sum, s) => sum + Number(s.amount), 0);
+                net[m.id] = (paid[m.id] || 0) - shareEach + settled;
+            });
+            return net;
+        }
+
+        function renderBalance() {
+            const section = document.getElementById('balance-section');
+            const list = document.getElementById('balance-list');
+            if (!section || !list) return;
+            if (groupMembers.length <= 1) { section.classList.add('hidden'); return; }
+            section.classList.remove('hidden');
+            const monthLabel = document.getElementById('dash-month-label')?.innerText || '';
+            document.getElementById('balance-month-label').innerText = monthLabel;
+
+            const net = computeBalance();
+            list.innerHTML = groupMembers.map(m => {
+                const v = net[m.id] || 0;
+                if (Math.abs(v) < 0.01) {
+                    return `<div class="flex justify-between items-center bg-canvas p-3 rounded-2xl border border-line text-sm">
+                        <span class="font-medium text-ink">${escapeHtml(memberName(m.id))}</span>
+                        <span class="text-muted text-xs font-semibold">Quites</span>
+                    </div>`;
+                }
+                const positive = v > 0;
+                return `<div class="flex justify-between items-center bg-canvas p-3 rounded-2xl border border-line text-sm">
+                    <span class="font-medium text-ink">${escapeHtml(memberName(m.id))}</span>
+                    <span class="text-xs font-bold ${positive ? 'text-emerald-600' : 'text-rose-500'}">${positive ? 'a receber' : 'a pagar'} ${moneyBR(Math.abs(v))}</span>
+                </div>`;
+            }).join('');
+        }
+
+        async function settleBalance() {
+            if (groupMembers.length <= 1) return;
+            const net = computeBalance();
+            const ym = ymOf(viewYear, viewMonth);
+            const searchId = myGroupId || activeUser?.id;
+            const rows = groupMembers
+                .filter(m => Math.abs(net[m.id] || 0) >= 0.01)
+                .map(m => ({ group_id: searchId, ym, user_id: m.id, amount: -(net[m.id] || 0), note: 'Quitação manual' }));
+
+            if (!rows.length) { showToast('Vocês já estão quites este mês.'); return; }
+            if (!confirm('Registrar a quitação do saldo deste mês? Isso zera o saldo do mês atual.')) return;
+
+            const { error } = await supabase.from('settlements').insert(rows);
+            if (error) { showToast('Erro ao quitar: ' + error.message, 'error'); return; }
+            showToast('Saldo quitado!');
+            await fetchSettlements();
+            renderBalance();
+        }
+
+        // ===================== ORÇAMENTO POR CATEGORIA =====================
+        async function fetchBudgets() {
+            const searchId = myGroupId || activeUser?.id;
+            try {
+                const { data } = await supabase.from('budgets').select('*')
+                    .eq('group_id', searchId).order('category', { ascending: true });
+                cachedBudgets = data || [];
+            } catch (_) { cachedBudgets = []; }
+            renderBudgetsList();
+            renderDashboardAlerts();
+        }
+
+        function categorySpendMap() {
+            const spend = {};
+            cachedTransactions.forEach(tx => {
+                if (tx.type !== 'free' || !tx.category) return;
+                spend[tx.category] = (spend[tx.category] || 0) + (parseFloat(tx.amount) || 0);
+            });
+            return spend;
+        }
+
+        function renderBudgetsList() {
+            const box = document.getElementById('budgets-list');
+            if (!box) return;
+            if (!cachedBudgets.length) {
+                box.innerHTML = `<p class="text-muted text-center py-3 text-xs">Nenhuma categoria com orçamento definido.</p>`;
+                return;
+            }
+            const spend = categorySpendMap();
+            box.innerHTML = cachedBudgets.map(b => {
+                const spent = spend[b.category] || 0;
+                const limit = Number(b.monthly_limit) || 0;
+                const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+                const over = limit > 0 && spent > limit;
+                return `<div class="bg-canvas p-3 rounded-2xl border border-line space-y-1.5">
+                    <div class="flex justify-between items-center gap-2">
+                        <span class="text-sm font-semibold text-ink truncate">${escapeHtml(b.category)}</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-xs text-muted">R$</span>
+                            <input type="number" step="0.01" min="0" value="${limit}" data-budget-id="${b.id}" class="budget-limit-input w-20 px-2 py-1 border border-line rounded-lg text-xs text-right font-semibold bg-white outline-none focus:border-brand">
+                            <button type="button" data-del-budget="${b.id}" class="text-muted hover:text-rose-500 p-1"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div class="w-full bg-line rounded-full h-1.5 overflow-hidden"><div class="h-full ${over ? 'bg-rose-400' : 'bg-emerald-400'}" style="width:${pct}%"></div></div>
+                    <p class="text-[11px] text-muted">${moneyBR(spent)} de ${moneyBR(limit)} este mês</p>
+                </div>`;
+            }).join('');
+        }
+
+        async function addBudget() {
+            const category = document.getElementById('budget-new-category').value.trim();
+            const limit = parseFloat(document.getElementById('budget-new-limit').value);
+            if (!category || !(limit > 0)) { showToast('Informe categoria e limite válido.', 'error'); return; }
+            const searchId = myGroupId || activeUser?.id;
+            const { error } = await supabase.from('budgets')
+                .upsert([{ group_id: searchId, category, monthly_limit: limit }], { onConflict: 'group_id,category' });
+            if (error) { showToast('Erro ao salvar orçamento: ' + error.message, 'error'); return; }
+            document.getElementById('budget-new-category').value = '';
+            document.getElementById('budget-new-limit').value = '';
+            showToast('Orçamento salvo!');
+            fetchBudgets();
+        }
+
+        async function updateBudgetLimit(id, value) {
+            const limit = parseFloat(value);
+            if (!(limit >= 0)) return;
+            const { error } = await supabase.from('budgets')
+                .update({ monthly_limit: limit, updated_at: new Date().toISOString() }).eq('id', id);
+            if (error) { showToast('Erro ao atualizar: ' + error.message, 'error'); return; }
+            cachedBudgets = cachedBudgets.map(b => b.id === id ? { ...b, monthly_limit: limit } : b);
+            renderBudgetsList();
+            renderDashboardAlerts();
+        }
+
+        async function deleteBudget(id) {
+            if (!confirm('Remover este orçamento?')) return;
+            const { error } = await supabase.from('budgets').delete().eq('id', id);
+            if (error) { showToast('Erro ao remover: ' + error.message, 'error'); return; }
+            showToast('Orçamento removido.');
+            fetchBudgets();
+        }
+
+        // ===================== ALERTAS DO DASHBOARD =====================
+        function renderDashboardAlerts() {
+            const box = document.getElementById('dash-alerts');
+            if (!box) return;
+            let html = '';
+
+            // Estouro / proximidade de orçamento por categoria (mês visualizado)
+            if (cachedBudgets.length) {
+                const spend = categorySpendMap();
+                cachedBudgets.forEach(b => {
+                    const spent = spend[b.category] || 0;
+                    const limit = Number(b.monthly_limit) || 0;
+                    if (!(limit > 0)) return;
+                    const pct = spent / limit;
+                    if (pct >= 1) {
+                        html += `<div class="vr-alert vr-alert-danger"><i class="fa-solid fa-triangle-exclamation mt-0.5"></i><span>Orçamento de <strong>${escapeHtml(b.category)}</strong> estourado: ${moneyBR(spent)} de ${moneyBR(limit)}.</span></div>`;
+                    } else if (pct >= 0.9) {
+                        html += `<div class="vr-alert vr-alert-warn"><i class="fa-solid fa-circle-exclamation mt-0.5"></i><span>Orçamento de <strong>${escapeHtml(b.category)}</strong> quase no limite: ${moneyBR(spent)} de ${moneyBR(limit)} (${Math.round(pct * 100)}%).</span></div>`;
+                    }
+                });
+            }
+
+            // Gastos fixos recorrentes perto do vencimento (só faz sentido no mês corrente)
+            const now = new Date();
+            const isCurrentMonthView = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+            if (isCurrentMonthView) {
+                const today = now.getDate();
+                const ym = ymOf(viewYear, viewMonth);
+                cachedRecurring.forEach(t => {
+                    if (t.type !== 'fixed' || !t.due_day || t.active === false) return;
+                    if (t.start_ym > ym || (t.end_ym && ym > t.end_ym)) return;
+                    if ((t.skip_yms || []).includes(ym)) return;
+                    const diff = t.due_day - today;
+                    if (diff >= 0 && diff <= 3) {
+                        const when = diff === 0 ? 'vence hoje' : diff === 1 ? 'vence amanhã' : `vence em ${diff} dias`;
+                        html += `<div class="vr-alert vr-alert-warn"><i class="fa-solid fa-clock mt-0.5"></i><span><strong>${escapeHtml(t.description)}</strong> (${moneyBR(t.amount)}) ${when}.</span></div>`;
+                    }
+                });
+            }
+
+            box.innerHTML = html;
+        }
+
+        // ===================== EVOLUÇÃO MENSAL (ÚLTIMOS 6 MESES) =====================
+        async function fetchMonthlyHistory() {
+            const searchId = myGroupId || activeUser?.id;
+            const now = new Date();
+            const months = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push({ year: d.getFullYear(), month: d.getMonth(), ym: ymOf(d.getFullYear(), d.getMonth()) });
+            }
+            const rangeStart = new Date(months[0].year, months[0].month, 1).toISOString();
+            const rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+            let txs = [];
+            try {
+                const { data } = await supabase.from('transactions')
+                    .select('type, amount, created_at')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .gte('created_at', rangeStart).lt('created_at', rangeEnd);
+                txs = data || [];
+            } catch (_) { txs = []; }
+
+            const totalsByYm = {};
+            months.forEach(m => { totalsByYm[m.ym] = { income: 0, fixed: 0, invest: 0, free: 0 }; });
+
+            txs.forEach(tx => {
+                const d = new Date(tx.created_at);
+                const ym = ymOf(d.getFullYear(), d.getMonth());
+                if (!totalsByYm[ym] || totalsByYm[ym][tx.type] === undefined) return;
+                totalsByYm[ym][tx.type] += parseFloat(tx.amount) || 0;
+            });
+
+            months.forEach(m => {
+                cachedRecurring
+                    .filter(t => t.active !== false
+                        && t.start_ym <= m.ym
+                        && (!t.end_ym || m.ym <= t.end_ym)
+                        && !(t.skip_yms || []).includes(m.ym))
+                    .forEach(t => {
+                        const bucket = t.type === 'income' ? 'income' : 'fixed';
+                        totalsByYm[m.ym][bucket] += Number(t.amount) || 0;
+                    });
+            });
+
+            renderMonthlyChart(months, totalsByYm);
+        }
+
+        function renderMonthlyChart(months, totalsByYm) {
+            const canvas = document.getElementById('chart-monthly-evolution');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const labels = months.map(m => {
+                const label = new Date(m.year, m.month, 1).toLocaleDateString('pt-BR', { month: 'short' });
+                return label.charAt(0).toUpperCase() + label.slice(1);
+            });
+            const mk = (key) => months.map(m => Math.round(totalsByYm[m.ym][key] * 100) / 100);
+
+            if (monthlyChartInstance) { monthlyChartInstance.destroy(); }
+            monthlyChartInstance = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Renda', data: mk('income'), backgroundColor: '#10b981' },
+                        { label: 'Fixo', data: mk('fixed'), backgroundColor: '#f43f5e' },
+                        { label: 'Futuro', data: mk('invest'), backgroundColor: '#6366f1' },
+                        { label: 'Livre', data: mk('free'), backgroundColor: '#f59e0b' },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { beginAtZero: true, ticks: { font: { size: 9 } } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                    }
+                }
+            });
         }
 
         async function deleteTransaction(txId) {
@@ -1509,6 +1966,8 @@
             document.getElementById('modal-edit-rec-title').innerText = t.type === 'income' ? 'Editar renda fixa' : 'Editar gasto fixo';
             document.getElementById('edit-rec-desc').value = t.description || '';
             document.getElementById('edit-rec-amount').value = Number(t.amount) || 0;
+            document.getElementById('edit-rec-due-day-group').classList.toggle('hidden', t.type === 'income');
+            document.getElementById('edit-rec-due-day').value = t.due_day || '';
             const m = document.getElementById('modal-edit-rec');
             m.classList.remove('hidden'); m.classList.add('flex');
         }
@@ -1526,12 +1985,14 @@
             const desc = document.getElementById('edit-rec-desc').value.trim();
             const amount = parseFloat(document.getElementById('edit-rec-amount').value);
             if (!desc || !(amount >= 0)) { showToast('Preencha descrição e valor.', 'error'); return; }
+            const dueDayRaw = t.type === 'income' ? NaN : parseInt(document.getElementById('edit-rec-due-day').value, 10);
+            const due_day = (dueDayRaw >= 1 && dueDayRaw <= 31) ? dueDayRaw : null;
 
             const ym = ymOf(viewYear, viewMonth);
             let error = null;
             if (t.start_ym >= ym) {
                 // Ainda não gerou meses anteriores → edita o template direto.
-                ({ error } = await supabase.from('recurring_fixed').update({ description: desc, amount }).eq('id', t.id));
+                ({ error } = await supabase.from('recurring_fixed').update({ description: desc, amount, due_day }).eq('id', t.id));
             } else {
                 // Preserva o histórico: encerra o antigo no mês anterior e abre um novo daqui pra frente.
                 ({ error } = await supabase.from('recurring_fixed').update({ end_ym: prevYm(ym) }).eq('id', t.id));
@@ -1539,7 +2000,7 @@
                     const futureSkips = (t.skip_yms || []).filter(s => s >= ym);
                     ({ error } = await supabase.from('recurring_fixed').insert([{
                         user_id: activeUser?.id, group_id: t.group_id, type: t.type || 'fixed',
-                        description: desc, amount, start_ym: ym, skip_yms: futureSkips
+                        description: desc, amount, start_ym: ym, skip_yms: futureSkips, due_day, shared: t.shared !== false
                     }]));
                 }
             }
@@ -2141,6 +2602,17 @@
                 });
             });
 
+            // ---- Filtro por pessoa no extrato (pílulas geradas dinamicamente) ----
+            document.getElementById('tx-person-filters').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-tx-person]');
+                if (!btn) return;
+                activePersonFilter = btn.dataset.txPerson;
+                document.querySelectorAll('#tx-person-filters [data-tx-person]').forEach(b => {
+                    b.classList.toggle('is-active', b.dataset.txPerson === activePersonFilter);
+                });
+                renderTransactions();
+            });
+
             // ---- Busca no extrato ----
             document.getElementById('tx-search').addEventListener('input', () => renderTransactions());
 
@@ -2384,6 +2856,13 @@
             document.getElementById('tx-installments').addEventListener('change', updateTxFormFields);
             updateTxFormFields();
 
+            // Um lançamento privado não entra no rateio: marcá-lo desmarca e trava "Compartilhado".
+            document.getElementById('tx-private').addEventListener('change', (e) => {
+                const sharedBox = document.getElementById('tx-shared');
+                if (e.target.checked) { sharedBox.checked = false; sharedBox.disabled = true; }
+                else { sharedBox.disabled = false; }
+            });
+
             document.getElementById('form-transaction').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const type = document.getElementById('tx-type').value;
@@ -2400,11 +2879,14 @@
 
                 if (type === 'salary' || type === 'fixed') {
                     // Recorrente: grava um template (renda fixa ou gasto fixo) a partir do mês visto.
+                    const dueDayRaw = type === 'fixed' ? parseInt(document.getElementById('tx-due-day').value, 10) : NaN;
                     ({ error } = await supabase.from('recurring_fixed').insert([{
                         user_id: activeUser?.id, group_id: myGroupId,
                         type: type === 'salary' ? 'income' : 'fixed',
                         description: description || (type === 'salary' ? 'Salário' : 'Gasto fixo'),
-                        amount: totalAmount, start_ym: ymOf(viewYear, viewMonth)
+                        amount: totalAmount, start_ym: ymOf(viewYear, viewMonth),
+                        due_day: (dueDayRaw >= 1 && dueDayRaw <= 31) ? dueDayRaw : null,
+                        shared: type === 'fixed' ? document.getElementById('tx-shared').checked : true
                     }]));
                 } else {
                     // Pontual: entrada avulsa, investimento ou gasto livre — com parcelamento opcional.
@@ -2412,6 +2894,10 @@
                     const installments = parseInt(document.getElementById('tx-installments').value, 10) || 1;
                     const current = parseInt(document.getElementById('tx-current-installment').value, 10) || 1;
                     const valorParcela = Math.round((totalAmount / installments) * 100) / 100;
+                    const canShare = (type === 'invest' || type === 'free');
+                    const isPrivate = canShare && document.getElementById('tx-private').checked;
+                    const isShared = canShare ? (isPrivate ? false : document.getElementById('tx-shared').checked) : false;
+                    const category = type === 'free' ? (document.getElementById('tx-category').value.trim() || null) : null;
                     const rows = [];
                     const baseDate = new Date();
                     const baseYear = baseDate.getFullYear(), baseMonth = baseDate.getMonth(), baseDay = baseDate.getDate();
@@ -2421,7 +2907,8 @@
                         const dataParcela = new Date(baseYear, baseMonth + (i - current), baseDay);
                         rows.push({
                             user_id: activeUser?.id, group_id: myGroupId, type,
-                            amount: valorParcela, description, card_id,
+                            amount: valorParcela, description, card_id, category,
+                            shared: isShared, is_private: isPrivate,
                             current_installment: i, total_installments: installments,
                             created_at: dataParcela.toISOString()
                         });
@@ -2435,6 +2922,7 @@
 
                 showToast(type === 'salary' || type === 'fixed' ? "Recorrência criada — repete todo mês!" : "Lançamento efetuado!");
                 document.getElementById('form-transaction').reset();
+                document.getElementById('tx-shared').disabled = false;
                 updateTxFormFields();
                 fetchDashboardAndTransactions();
             });
@@ -2464,6 +2952,20 @@
 
             // ---- Cancelar assinatura ----
             document.getElementById('btn-cancel-subscription').addEventListener('click', cancelSubscription);
+
+            // ---- Saldo entre parceiros ----
+            document.getElementById('btn-settle-balance').addEventListener('click', settleBalance);
+
+            // ---- Orçamento por categoria ----
+            document.getElementById('btn-add-budget').addEventListener('click', addBudget);
+            document.getElementById('budgets-list').addEventListener('change', (e) => {
+                const input = e.target.closest('.budget-limit-input');
+                if (input) updateBudgetLimit(input.dataset.budgetId, input.value);
+            });
+            document.getElementById('budgets-list').addEventListener('click', (e) => {
+                const del = e.target.closest('[data-del-budget]');
+                if (del) deleteBudget(del.dataset.delBudget);
+            });
 
             // ---- Copiar código de convite ----
             document.getElementById('btn-copy-invite').addEventListener('click', async () => {
