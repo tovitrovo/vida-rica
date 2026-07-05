@@ -1121,6 +1121,29 @@
         </form>
     </div>
 
+    <!-- MODAL: editar lançamento -->
+    <div id="modal-edit-tx" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 backdrop-blur-sm px-6">
+        <form id="form-edit-tx" class="vr-card p-6 w-full max-w-xs space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center mx-auto mb-2"><i class="fa-solid fa-pen text-base"></i></div>
+                <h3 class="font-display font-bold text-lg">Editar lançamento</h3>
+            </div>
+            <div>
+                <label class="vr-label">Descrição</label>
+                <input type="text" id="edit-tx-desc" required class="vr-field">
+            </div>
+            <div>
+                <label class="vr-label">Valor (R$)</label>
+                <input type="number" step="0.01" min="0" id="edit-tx-amount" required class="vr-field font-semibold">
+            </div>
+            <p class="text-xs text-muted">Útil pra ajustar o valor da fatura sem lançar gasto a gasto no dia a dia.</p>
+            <div class="space-y-2">
+                <button type="submit" class="vr-btn vr-btn-spectrum">Salvar</button>
+                <button type="button" id="modal-edit-tx-cancel" class="w-full text-xs text-muted font-medium pt-1">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
     <!-- TOASTS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
@@ -1170,6 +1193,65 @@
             const d = new Date(y, m - 2, 1);
             return ymOf(d.getFullYear(), d.getMonth());
         };
+
+        // ===================== FERIADOS NACIONAIS E DIA ÚTIL =====================
+        // Usado para empurrar o vencimento do cartão pro próximo dia útil quando
+        // cai em fim de semana ou feriado nacional (calendário bancário real).
+        function easterDate(year) {
+            // Algoritmo de Meeus/Jones/Butcher
+            const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+            const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3);
+            const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4), k = c % 4;
+            const l = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * l) / 451);
+            const month = Math.floor((h + l - 7 * m + 114) / 31);
+            const day = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(year, month - 1, day);
+        }
+
+        const addDays = (date, days) => {
+            const d = new Date(date);
+            d.setDate(d.getDate() + days);
+            return d;
+        };
+        const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const dateKey = (date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+        function nationalHolidays(year) {
+            const easter = easterDate(year);
+            const fixed = [
+                [0, 1], [3, 21], [4, 1], [8, 7], [9, 12], [10, 2], [10, 15], [10, 20], [11, 25]
+            ].map(([m, d]) => new Date(year, m, d));
+            const movable = [
+                addDays(easter, -48), // Carnaval (segunda)
+                addDays(easter, -47), // Carnaval (terça)
+                addDays(easter, -2),  // Sexta-feira Santa
+                addDays(easter, 60)   // Corpus Christi
+            ];
+            return new Set([...fixed, ...movable].map(dateKey));
+        }
+
+        function isBusinessDay(date) {
+            const dow = date.getDay();
+            if (dow === 0 || dow === 6) return false;
+            return !nationalHolidays(date.getFullYear()).has(dateKey(date));
+        }
+
+        // Empurra a data pro próximo dia útil (não mexe se já cair em dia útil).
+        function nextBusinessDay(date) {
+            let d = startOfDay(date);
+            while (!isBusinessDay(d)) d = addDays(d, 1);
+            return d;
+        }
+
+        // Data de vencimento de um cartão no mês/ano dados, já ajustada pro próximo
+        // dia útil. `month` pode vir fora de 0-11 (ex: -1, 13) — o Date rola o mês
+        // sozinho, o que também resolve "dia 31" em meses mais curtos.
+        function creditDueDate(year, month, day) {
+            return nextBusinessDay(new Date(year, month, day));
+        }
 
         // Escapa texto vindo do usuário/banco antes de inserir via innerHTML (anti-XSS)
         const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1740,8 +1822,12 @@
                     const day = (dueDayRaw >= 1 && dueDayRaw <= 31) ? dueDayRaw : new Date().getDate();
                     const cardId = creditCardIds[idx] || null;
                     const baseDate = new Date();
+                    // Se o vencimento deste mês (já ajustado pro dia útil) ainda não chegou,
+                    // a primeira fatura em aberto é a deste mês; senão, começa na do mês seguinte.
+                    const thisMonthDue = creditDueDate(baseDate.getFullYear(), baseDate.getMonth(), day);
+                    const startMonthOffset = thisMonthDue < startOfDay(baseDate) ? 1 : 0;
                     for (let i = 0; i < remaining; i++) {
-                        const dataParcela = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, day);
+                        const dataParcela = creditDueDate(baseDate.getFullYear(), baseDate.getMonth() + startMonthOffset + i, day);
                         txRows.push({
                             user_id: activeUser.id, group_id: myGroupId, type: 'free',
                             amount, description: `Fatura ${r.bank.trim() || 'do cartão'}`, card_id: cardId,
@@ -2136,6 +2222,7 @@
                         <div class="flex items-center gap-1 shrink-0">
                             <span class="font-display font-semibold ${tx.type === 'income' ? 'text-emerald-600' : 'text-ink'}">${tx.type === 'income' ? '+' : '−'}${moneyBR(amt)}</span>
                             ${tx.recurring ? `<button data-edit-rec="${tx.recurring_id}" class="text-line hover:text-brand p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+                            ${(!tx.recurring && canDelete) ? `<button data-edit-tx="${tx.id}" class="text-line hover:text-brand p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
                             ${canDelete ? `<button data-del-tx="${tx.id}" class="text-line hover:text-rose-400 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Remover"><i class="fa-solid fa-trash text-xs"></i></button>` : ''}
                         </div>
                     </div>`;
@@ -2477,6 +2564,39 @@
                 .delete().eq('id', txId).eq('user_id', activeUser?.id);
             if (error) { showToast("Erro ao remover: " + error.message, "error"); return; }
             showToast("Lançamento removido.");
+            fetchDashboardAndTransactions();
+        }
+
+        // ----- Edição de lançamento avulso (ex: valor da fatura do cartão) -----
+        let pendingEditTx = null;
+
+        function openEditTxModal(txId) {
+            const t = cachedTransactions.find(tx => tx.id === txId);
+            if (!t) return;
+            pendingEditTx = txId;
+            document.getElementById('edit-tx-desc').value = t.description || '';
+            document.getElementById('edit-tx-amount').value = Number(t.amount) || 0;
+            const m = document.getElementById('modal-edit-tx');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+
+        function closeEditTxModal() {
+            const m = document.getElementById('modal-edit-tx');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            pendingEditTx = null;
+        }
+
+        async function saveEditTx() {
+            if (!pendingEditTx) return;
+            const desc = document.getElementById('edit-tx-desc').value.trim();
+            const amount = parseFloat(document.getElementById('edit-tx-amount').value);
+            if (!desc || !(amount >= 0)) { showToast('Preencha descrição e valor.', 'error'); return; }
+            const { error } = await supabase.from('transactions')
+                .update({ description: desc, amount })
+                .eq('id', pendingEditTx).eq('user_id', activeUser?.id);
+            if (error) { showToast('Erro ao editar: ' + error.message, 'error'); return; }
+            showToast('Lançamento atualizado.');
+            closeEditTxModal();
             fetchDashboardAndTransactions();
         }
 
@@ -3266,10 +3386,12 @@
             // ---- Busca no extrato ----
             document.getElementById('tx-search').addEventListener('input', () => renderTransactions());
 
-            // ---- Deletar transação ----
+            // ---- Editar/deletar transação ----
             document.getElementById('transactions-list').addEventListener('click', e => {
                 const edit = e.target.closest('[data-edit-rec]');
                 if (edit) { openEditRecurringModal(edit.dataset.editRec); return; }
+                const editTx = e.target.closest('[data-edit-tx]');
+                if (editTx) { openEditTxModal(editTx.dataset.editTx); return; }
                 const btn = e.target.closest('[data-del-tx]');
                 if (!btn) return;
                 const id = btn.dataset.delTx;
@@ -3291,6 +3413,13 @@
                 if (e.target.id === 'modal-edit-rec') closeEditRecurringModal();
             });
             document.getElementById('form-edit-rec').addEventListener('submit', (e) => { e.preventDefault(); saveEditRecurring(); });
+
+            // ---- Modal de edição de lançamento avulso ----
+            document.getElementById('modal-edit-tx-cancel').addEventListener('click', closeEditTxModal);
+            document.getElementById('modal-edit-tx').addEventListener('click', (e) => {
+                if (e.target.id === 'modal-edit-tx') closeEditTxModal();
+            });
+            document.getElementById('form-edit-tx').addEventListener('submit', (e) => { e.preventDefault(); saveEditTx(); });
 
             // ---- Abas de navegação ----
             document.getElementById('nav-btn-launch').addEventListener('click', () => { switchTab('panel-launch', 'nav-btn-launch'); maybeStartFixedExpensesWizard(); });

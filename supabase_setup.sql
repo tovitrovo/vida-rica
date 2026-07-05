@@ -169,6 +169,11 @@ drop policy if exists "transactions_delete_own" on public.transactions;
 create policy "transactions_delete_own" on public.transactions
     for delete using (auth.uid() = user_id);
 
+-- Edição: só posso editar meus próprios lançamentos (ex: ajustar valor da fatura).
+drop policy if exists "transactions_update_own" on public.transactions;
+create policy "transactions_update_own" on public.transactions
+    for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ============================================================================
 -- 4.1. FUNÇÃO AUXILIAR: public.is_admin()
 --      Retorna true se o e-mail do JWT do chamador for de um administrador.
@@ -426,7 +431,7 @@ grant usage on schema public to authenticated, service_role;
 grant select, insert on table public.profiles to authenticated;
 grant update (full_name, whatsapp, group_id) on table public.profiles to authenticated;
 grant select, insert, delete on table public.cards to authenticated;
-grant select, insert, delete on table public.transactions to authenticated;
+grant select, insert, update, delete on table public.transactions to authenticated;
 grant select, insert, update on table public.plan_prices to authenticated;
 grant select, insert on table public.subscriptions to authenticated;
 grant select, insert, update, delete on table public.mentorship_slots to authenticated;
