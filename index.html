@@ -1406,7 +1406,15 @@
             try {
                 const profilePromise = supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
                 const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: null, timedOut: true }), 4000));
-                const { data: profile } = await Promise.race([profilePromise, timeout]);
+                let { data: profile, timedOut } = await Promise.race([profilePromise, timeout]);
+
+                // Se foi o timeout que "venceu" a corrida (e não uma resposta real do banco
+                // dizendo que não há perfil), tentamos mais uma vez sem prazo. Sem isso, um
+                // parceiro que já entrou no grupo pode perder o group_id nesta sessão e cair
+                // de volta na tela de planos pedindo o código de convite de novo.
+                if (timedOut) {
+                    ({ data: profile } = await profilePromise);
+                }
 
                 if (profile) {
                     myProfile = profile;
@@ -1535,13 +1543,19 @@
 
         async function fetchSubscription() {
             mySubscription = null;
-            const searchId = myGroupId || activeUser?.id;
             try {
-                const { data } = await supabase
-                    .from('subscriptions')
-                    .select('*')
-                    .or(`user_id.eq.${activeUser.id},group_id.eq.${searchId}`)
-                    .order('created_at', { ascending: false });
+                // Não filtramos por myGroupId aqui: o RLS de "subscriptions" já resolve
+                // no servidor (via current_group_id(), lido direto de profiles) quais
+                // linhas pertencem a mim ou ao meu grupo. Filtrar de novo no cliente usando
+                // o myGroupId em memória é redundante e frágil — se a leitura do perfil no
+                // checkAuth cair no timeout/erro, myGroupId fica desatualizado e a
+                // assinatura do parceiro que já entrou no grupo deixa de ser encontrada,
+                // fazendo a tela de planos pedir o código de convite de novo a cada login.
+                let query = supabase.from('subscriptions').select('*').order('created_at', { ascending: false });
+                // Admin enxerga todas as linhas via RLS (is_admin()); restringimos à própria
+                // aqui só pra não puxar a tabela inteira — o acesso do admin não depende disso.
+                if (isAdmin) query = query.eq('user_id', activeUser.id);
+                const { data } = await query;
                 const rows = data || [];
                 // Prioriza uma assinatura ativa; senão pega a mais recente.
                 mySubscription = rows.find(r => r.status === 'active') || rows[0] || null;
