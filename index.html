@@ -628,6 +628,7 @@
                     <div class="flex items-center justify-between">
                         <p class="text-xs font-medium uppercase tracking-wider text-white/60 flex items-center gap-2">
                             <i class="fa-solid fa-wallet"></i> Livre para gastar
+                            <span id="dash-forecast-badge" class="hidden text-[10px] font-bold normal-case tracking-normal bg-white/15 text-white/90 px-1.5 py-0.5 rounded-full">Previsão</span>
                         </p>
                         <div class="flex items-center gap-1">
                             <button id="btn-prev-month" class="text-white/50 hover:text-white active:scale-95 p-1.5 rounded-lg transition-colors"><i class="fa-solid fa-chevron-left text-xs"></i></button>
@@ -2101,9 +2102,9 @@
             const el = document.getElementById('dash-month-label');
             if (el) el.innerText = label.charAt(0).toUpperCase() + label.slice(1);
             const now = new Date();
-            const isCurrent = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-            const nextBtn = document.getElementById('btn-next-month');
-            if (nextBtn) nextBtn.classList.toggle('opacity-30', isCurrent);
+            const isFuture = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && viewMonth > now.getMonth());
+            const badge = document.getElementById('dash-forecast-badge');
+            if (badge) badge.classList.toggle('hidden', !isFuture);
         }
 
         async function fetchDashboardAndTransactions() {
@@ -3376,8 +3377,6 @@
                 fetchDashboardAndTransactions();
             });
             document.getElementById('btn-next-month').addEventListener('click', () => {
-                const now = new Date();
-                if (viewYear === now.getFullYear() && viewMonth === now.getMonth()) return;
                 viewMonth++;
                 if (viewMonth > 11) { viewMonth = 0; viewYear++; }
                 fetchDashboardAndTransactions();
@@ -3834,10 +3833,11 @@
                 if (result === 'full')    { showToast("Este grupo já atingiu o limite de pessoas do plano.", "error"); return; }
 
                 myGroupId = partnerId;
+                isNewPartnerJoin = true;
                 showToast("Contas integradas! Sincronizando saldos...");
                 document.getElementById('form-connect-partner').reset();
                 await fetchSubscription();
-                loadAppData();
+                await enterApp();
             });
         };
     </script>
