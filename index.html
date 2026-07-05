@@ -1802,39 +1802,60 @@
                 }
 
                 // Cartão de crédito com parcelas em aberto → cards (credit) + uma transação por mês restante.
-                // Cada linha representa um parcelamento inteiro (não uma parcela isolada): o valor da
-                // parcela e quantas ainda restam. A partir disso geramos uma transação por mês, uma para
-                // cada parcela restante, cada uma "saindo da fatura" no seu próprio mês.
+                // Várias linhas podem descrever o MESMO cartão (uma por mês, com valores diferentes,
+                // já que a fatura muda de valor mês a mês) — por isso agrupamos por nome do banco:
+                // cada grupo vira um único cartão, e os meses avançam sequencialmente ao longo do
+                // grupo inteiro (não reiniciam a cada linha), preservando a ordem em que foram digitadas.
                 const creditItems = collectRows('fa-credit-rows', {
                     bank: '.fa-credit-bank', amount: '.fa-credit-amount', remaining: '.fa-credit-remaining', dueDay: '.fa-credit-due-day'
                 }).filter(r => (parseFloat(r.amount) || 0) > 0);
 
+                const creditGroups = [];
+                const creditGroupIndexByBank = new Map();
+                creditItems.forEach(r => {
+                    const bank = r.bank.trim() || 'Cartão de crédito';
+                    const key = bank.toLowerCase();
+                    if (!creditGroupIndexByBank.has(key)) {
+                        creditGroupIndexByBank.set(key, creditGroups.length);
+                        creditGroups.push({ bank, items: [] });
+                    }
+                    creditGroups[creditGroupIndexByBank.get(key)].items.push(r);
+                });
+
                 let creditCardIds = [];
-                if (creditItems.length) {
-                    const payload = creditItems.map(r => ({ user_id: activeUser.id, name: r.bank.trim() || 'Cartão de crédito', type: 'credit' }));
+                if (creditGroups.length) {
+                    const payload = creditGroups.map(g => ({ user_id: activeUser.id, name: g.bank, type: 'credit' }));
                     const { data, error } = await supabase.from('cards').insert(payload).select('id');
                     if (error) throw error;
                     creditCardIds = (data || []).map(c => c.id);
                 }
-                creditItems.forEach((r, idx) => {
-                    const amount = parseFloat(r.amount) || 0;
-                    const remaining = Math.max(1, parseInt(r.remaining, 10) || 1);
-                    const dueDayRaw = parseInt(r.dueDay, 10);
+                creditGroups.forEach((g, gIdx) => {
+                    const cardId = creditCardIds[gIdx] || null;
+                    const perItemRemaining = g.items.map(r => Math.max(1, parseInt(r.remaining, 10) || 1));
+                    const totalInstallments = perItemRemaining.reduce((a, b) => a + b, 0);
+                    const dueDayRaw = parseInt(g.items[0].dueDay, 10);
                     const day = (dueDayRaw >= 1 && dueDayRaw <= 31) ? dueDayRaw : new Date().getDate();
-                    const cardId = creditCardIds[idx] || null;
                     const baseDate = new Date();
                     // Se o vencimento deste mês (já ajustado pro dia útil) ainda não chegou,
                     // a primeira fatura em aberto é a deste mês; senão, começa na do mês seguinte.
                     const thisMonthDue = creditDueDate(baseDate.getFullYear(), baseDate.getMonth(), day);
                     const startMonthOffset = thisMonthDue < startOfDay(baseDate) ? 1 : 0;
-                    for (let i = 0; i < remaining; i++) {
-                        const dataParcela = creditDueDate(baseDate.getFullYear(), baseDate.getMonth() + startMonthOffset + i, day);
-                        txRows.push({
-                            user_id: activeUser.id, group_id: myGroupId, type: 'free',
-                            amount, description: `Fatura ${r.bank.trim() || 'do cartão'}`, card_id: cardId,
-                            current_installment: i + 1, total_installments: remaining, created_at: dataParcela.toISOString()
-                        });
-                    }
+                    let monthCursor = 0;
+                    let installmentCursor = 0;
+                    g.items.forEach(r => {
+                        const amount = parseFloat(r.amount) || 0;
+                        const remaining = Math.max(1, parseInt(r.remaining, 10) || 1);
+                        for (let i = 0; i < remaining; i++) {
+                            const dataParcela = creditDueDate(baseDate.getFullYear(), baseDate.getMonth() + startMonthOffset + monthCursor, day);
+                            installmentCursor++;
+                            txRows.push({
+                                user_id: activeUser.id, group_id: myGroupId, type: 'free',
+                                amount, description: `Fatura ${g.bank}`, card_id: cardId,
+                                current_installment: installmentCursor, total_installments: totalInstallments, created_at: dataParcela.toISOString()
+                            });
+                            monthCursor++;
+                        }
+                    });
                 });
 
                 // Dívida pontual (sem recorrência) → debts.
