@@ -2314,10 +2314,11 @@
 
             let savedBalance = 0;
             try {
+                const memberIds = groupMembers.length ? groupMembers.map(m => m.id) : [activeUser?.id];
                 const { data } = await supabase
                     .from('cards')
                     .select('type,initial_balance')
-                    .eq('user_id', activeUser?.id);
+                    .in('user_id', memberIds);
                 savedBalance = (data || [])
                     .filter(c => c.type !== 'credit' && c.initial_balance != null)
                     .reduce((sum, c) => sum + (Number(c.initial_balance) || 0), 0);
@@ -2331,7 +2332,8 @@
             if (balanceEl) {
                 if (savedBalance > 0) {
                     balanceEl.classList.remove('hidden');
-                    balanceEl.innerHTML = `Você tem <b class="text-ink">${moneyBR(savedBalance)}</b> guardado hoje em conta.`;
+                    const intro = groupMembers.length > 1 ? 'Juntos, vocês têm' : 'Você tem';
+                    balanceEl.innerHTML = `${intro} <b class="text-ink">${moneyBR(savedBalance)}</b> guardado hoje em conta.`;
                 } else {
                     balanceEl.classList.add('hidden');
                 }
