@@ -910,7 +910,7 @@
             <!-- ABA: METAS FINANCEIRAS (previsão de quanto precisa entrar por mês) -->
             <div id="panel-goals" class="panel-tab vr-card p-5 space-y-4 hidden">
                 <h4 class="font-display font-bold text-base flex items-center gap-2"><i class="fa-solid fa-bullseye spectrum-text"></i><span>Metas financeiras</span></h4>
-                <p class="text-xs text-muted leading-snug -mt-2">Quanto vocês precisam ganhar em cada mês pra cobrir as contas fixas já cadastradas (recorrentes + parcelas). Investimento só entra depois, com o que sobrar no fim do mês.</p>
+                <p class="text-xs text-muted leading-snug -mt-2">Quanto vocês (você e seus parceiros) precisam ganhar em cada mês pra cobrir todas as contas já cadastradas — fixas, investimentos e gastos livres.</p>
                 <div id="goals-saved-balance" class="hidden bg-canvas p-3.5 rounded-2xl border border-line text-xs text-muted"></div>
                 <div id="goals-months-list" class="space-y-2.5"></div>
             </div>
@@ -2216,19 +2216,19 @@
             document.getElementById("dash-invest").innerText  = moneyBR(totalInvest);
             document.getElementById("dash-free-spent").innerText = moneyBR(totalFree);
 
-            // Meta do mês: só as contas fixas precisam ser cobertas pela renda; investimento
-            // fica de fora e só entra depois, com o que sobrar (ver clarificação do usuário).
+            // Meta do mês: toda a renda (própria + parceiros, via consulta em grupo acima)
+            // precisa cobrir todas as contas do mês — fixas, investimento e livre.
             const goalEl = document.getElementById('dash-goal-callout');
             if (goalEl) {
                 if (isFutureMonth(viewYear, viewMonth)) {
-                    const billsGap = totalFixed - totalIncome;
+                    const billsGap = committed - totalIncome;
                     goalEl.classList.remove('hidden');
                     if (billsGap > 0) {
                         goalEl.className = 'text-xs font-medium bg-white/10 rounded-xl px-3 py-2 mt-4 text-rose-200';
-                        goalEl.innerHTML = `<i class="fa-solid fa-bullseye mr-1.5"></i>Meta do mês: falta entrar <b>${moneyBR(billsGap)}</b> pra cobrir as contas fixas`;
+                        goalEl.innerHTML = `<i class="fa-solid fa-bullseye mr-1.5"></i>Meta do mês: falta entrar <b>${moneyBR(billsGap)}</b> pra cobrir as contas do mês`;
                     } else {
                         goalEl.className = 'text-xs font-medium bg-white/10 rounded-xl px-3 py-2 mt-4 text-emerald-200';
-                        goalEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1.5"></i>Contas fixas cobertas — sobram <b>${moneyBR(-billsGap)}</b> pra investir ou guardar`;
+                        goalEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1.5"></i>Contas do mês cobertas — sobram <b>${moneyBR(-billsGap)}</b>`;
                     }
                 } else {
                     goalEl.classList.add('hidden');
@@ -2248,8 +2248,9 @@
         // ===================== METAS FINANCEIRAS (PREVISÃO DE VÁRIOS MESES) =====================
         const GOALS_MONTHS_AHEAD = 6;
 
-        // Soma, por mês, as contas fixas (recorrentes + parcelas/lançamentos já registrados)
-        // e a renda já garantida (recorrente + já registrada), pra saber quanto falta entrar.
+        // Soma, por mês, todas as contas do grupo — fixas, investimento e livre
+        // (recorrentes + parcelas/lançamentos já registrados, de todos os parceiros)
+        // e a renda já garantida (própria + dos parceiros), pra saber quanto falta entrar.
         function computeGoalsMonths(recurringRows, txRows) {
             const now = new Date();
             const months = [];
@@ -2258,7 +2259,7 @@
                 const y = d.getFullYear(), m = d.getMonth();
                 const ym = ymOf(y, m);
 
-                let fixedTotal = 0, incomeTotal = 0;
+                let fixedTotal = 0, otherTotal = 0, incomeTotal = 0;
                 recurringRows.forEach(r => {
                     if (r.active === false) return;
                     if (r.start_ym > ym) return;
@@ -2273,12 +2274,13 @@
                     const amt = Number(t.amount) || 0;
                     if (t.type === 'income') incomeTotal += amt;
                     else if (t.type === 'fixed') fixedTotal += amt;
+                    else if (t.type === 'invest' || t.type === 'free') otherTotal += amt;
                 });
 
                 const daysInMonth = new Date(y, m + 1, 0).getDate();
                 const weeks = daysInMonth / 7;
-                const gap = fixedTotal - incomeTotal;
-                months.push({ y, m, ym, fixedTotal, incomeTotal, gap, weeklyGap: gap / weeks });
+                const gap = fixedTotal + otherTotal - incomeTotal;
+                months.push({ y, m, ym, fixedTotal, otherTotal, incomeTotal, gap, weeklyGap: gap / weeks });
             }
             return months;
         }
@@ -2304,7 +2306,7 @@
                     .from('transactions')
                     .select('type,amount,created_at')
                     .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
-                    .in('type', ['fixed', 'income'])
+                    .in('type', ['fixed', 'income', 'invest', 'free'])
                     .gte('created_at', startIso)
                     .lt('created_at', endIso);
                 txRows = error ? [] : (data || []);
@@ -2343,15 +2345,16 @@
                 const future = isFutureMonth(mo.y, mo.m);
                 const summary = mo.gap > 0
                     ? `<span class="text-sm font-bold text-rose-600">Meta: falta gerar ${moneyBR(mo.gap)}</span><p class="text-[11px] text-muted mt-0.5">≈ ${moneyBR(mo.weeklyGap)} por semana</p>`
-                    : `<span class="text-sm font-bold text-emerald-600">Coberto! Sobra ${moneyBR(-mo.gap)}</span><p class="text-[11px] text-muted mt-0.5">Pode virar investimento ou reserva</p>`;
+                    : `<span class="text-sm font-bold text-emerald-600">Coberto! Sobra ${moneyBR(-mo.gap)}</span><p class="text-[11px] text-muted mt-0.5">Livre pra guardar ou gastar</p>`;
                 return `
                     <div class="bg-canvas p-4 rounded-2xl border border-line space-y-2.5">
                         <div class="flex items-center justify-between">
                             <span class="font-display font-bold text-sm">${monthLabel}</span>
                             ${future ? '<span class="vr-chip bg-brand-soft text-brand">Previsão</span>' : ''}
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="grid grid-cols-3 gap-2 text-xs">
                             <div><span class="text-muted block">Contas fixas</span><span class="font-semibold text-rose-500">${moneyBR(mo.fixedTotal)}</span></div>
+                            <div><span class="text-muted block">Outras contas</span><span class="font-semibold text-amber-600">${moneyBR(mo.otherTotal)}</span></div>
                             <div><span class="text-muted block">Renda já garantida</span><span class="font-semibold text-emerald-600">${moneyBR(mo.incomeTotal)}</span></div>
                         </div>
                         <div class="pt-2 border-t border-line/70">${summary}</div>
