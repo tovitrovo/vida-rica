@@ -648,6 +648,9 @@
                             <div id="dash-health-bar" class="h-full rounded-full transition-all duration-500 bg-emerald-400" style="width:0%"></div>
                         </div>
                     </div>
+
+                    <!-- Meta do mês (só aparece em meses futuros): quanto falta entrar pra cobrir as contas fixas -->
+                    <div id="dash-goal-callout" class="hidden text-xs font-medium bg-white/10 rounded-xl px-3 py-2 mt-4"></div>
                 </div>
             </div>
 
@@ -691,6 +694,7 @@
                 <button id="nav-btn-cards" class="vr-seg-btn">Cartões</button>
                 <button id="nav-btn-debts" class="vr-seg-btn">Dívidas</button>
                 <button id="nav-btn-wishes" class="vr-seg-btn">Desejos</button>
+                <button id="nav-btn-goals" class="vr-seg-btn">Metas</button>
                 <button id="nav-btn-mentorship" class="vr-seg-btn hidden">Mentoria</button>
                 <button id="nav-btn-partner" class="vr-seg-btn">Parceria</button>
             </div>
@@ -901,6 +905,14 @@
                 </form>
 
                 <div id="wishes-list" class="space-y-2.5 pt-2"></div>
+            </div>
+
+            <!-- ABA: METAS FINANCEIRAS (previsão de quanto precisa entrar por mês) -->
+            <div id="panel-goals" class="panel-tab vr-card p-5 space-y-4 hidden">
+                <h4 class="font-display font-bold text-base flex items-center gap-2"><i class="fa-solid fa-bullseye spectrum-text"></i><span>Metas financeiras</span></h4>
+                <p class="text-xs text-muted leading-snug -mt-2">Quanto vocês precisam ganhar em cada mês pra cobrir as contas fixas já cadastradas (recorrentes + parcelas). Investimento só entra depois, com o que sobrar no fim do mês.</p>
+                <div id="goals-saved-balance" class="hidden bg-canvas p-3.5 rounded-2xl border border-line text-xs text-muted"></div>
+                <div id="goals-months-list" class="space-y-2.5"></div>
             </div>
 
             <!-- ABA: MENTORIA -->
@@ -2110,15 +2122,18 @@
         // ===================== COFRE FINANCEIRO (DASHBOARD) =====================
         const TX_PAGE_SIZE = 100;
 
+        function isFutureMonth(y, m) {
+            const now = new Date();
+            return y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth());
+        }
+
         function updateMonthLabel() {
             const label = new Date(viewYear, viewMonth, 1)
                 .toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
             const el = document.getElementById('dash-month-label');
             if (el) el.innerText = label.charAt(0).toUpperCase() + label.slice(1);
-            const now = new Date();
-            const isFuture = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && viewMonth > now.getMonth());
             const badge = document.getElementById('dash-forecast-badge');
-            if (badge) badge.classList.toggle('hidden', !isFuture);
+            if (badge) badge.classList.toggle('hidden', !isFutureMonth(viewYear, viewMonth));
         }
 
         async function fetchDashboardAndTransactions() {
@@ -2201,6 +2216,25 @@
             document.getElementById("dash-invest").innerText  = moneyBR(totalInvest);
             document.getElementById("dash-free-spent").innerText = moneyBR(totalFree);
 
+            // Meta do mês: só as contas fixas precisam ser cobertas pela renda; investimento
+            // fica de fora e só entra depois, com o que sobrar (ver clarificação do usuário).
+            const goalEl = document.getElementById('dash-goal-callout');
+            if (goalEl) {
+                if (isFutureMonth(viewYear, viewMonth)) {
+                    const billsGap = totalFixed - totalIncome;
+                    goalEl.classList.remove('hidden');
+                    if (billsGap > 0) {
+                        goalEl.className = 'text-xs font-medium bg-white/10 rounded-xl px-3 py-2 mt-4 text-rose-200';
+                        goalEl.innerHTML = `<i class="fa-solid fa-bullseye mr-1.5"></i>Meta do mês: falta entrar <b>${moneyBR(billsGap)}</b> pra cobrir as contas fixas`;
+                    } else {
+                        goalEl.className = 'text-xs font-medium bg-white/10 rounded-xl px-3 py-2 mt-4 text-emerald-200';
+                        goalEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1.5"></i>Contas fixas cobertas — sobram <b>${moneyBR(-billsGap)}</b> pra investir ou guardar`;
+                    }
+                } else {
+                    goalEl.classList.add('hidden');
+                }
+            }
+
             monthlySurplus = freeBalance;
             renderTransactions();
             renderPersonBreakdown();
@@ -2209,6 +2243,120 @@
             await fetchSettlements();
             renderBalance();
             renderDashboardAlerts();
+        }
+
+        // ===================== METAS FINANCEIRAS (PREVISÃO DE VÁRIOS MESES) =====================
+        const GOALS_MONTHS_AHEAD = 6;
+
+        // Soma, por mês, as contas fixas (recorrentes + parcelas/lançamentos já registrados)
+        // e a renda já garantida (recorrente + já registrada), pra saber quanto falta entrar.
+        function computeGoalsMonths(recurringRows, txRows) {
+            const now = new Date();
+            const months = [];
+            for (let i = 0; i < GOALS_MONTHS_AHEAD; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                const y = d.getFullYear(), m = d.getMonth();
+                const ym = ymOf(y, m);
+
+                let fixedTotal = 0, incomeTotal = 0;
+                recurringRows.forEach(r => {
+                    if (r.active === false) return;
+                    if (r.start_ym > ym) return;
+                    if (r.end_ym && ym > r.end_ym) return;
+                    if ((r.skip_yms || []).includes(ym)) return;
+                    const amt = Number(r.amount) || 0;
+                    if (r.type === 'income') incomeTotal += amt; else fixedTotal += amt;
+                });
+                txRows.forEach(t => {
+                    const dt = new Date(t.created_at);
+                    if (ymOf(dt.getFullYear(), dt.getMonth()) !== ym) return;
+                    const amt = Number(t.amount) || 0;
+                    if (t.type === 'income') incomeTotal += amt;
+                    else if (t.type === 'fixed') fixedTotal += amt;
+                });
+
+                const daysInMonth = new Date(y, m + 1, 0).getDate();
+                const weeks = daysInMonth / 7;
+                const gap = fixedTotal - incomeTotal;
+                months.push({ y, m, ym, fixedTotal, incomeTotal, gap, weeklyGap: gap / weeks });
+            }
+            return months;
+        }
+
+        async function fetchGoalsProjection() {
+            const searchId = myGroupId || activeUser?.id;
+            const now = new Date();
+            const startIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const endIso = new Date(now.getFullYear(), now.getMonth() + GOALS_MONTHS_AHEAD, 1).toISOString();
+
+            let recurringRows = [];
+            try {
+                const { data, error } = await supabase
+                    .from('recurring_fixed')
+                    .select('*')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`);
+                recurringRows = error ? [] : (data || []);
+            } catch (_) { recurringRows = []; }
+
+            let txRows = [];
+            try {
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('type,amount,created_at')
+                    .or(`user_id.eq.${searchId},group_id.eq.${searchId}`)
+                    .in('type', ['fixed', 'income'])
+                    .gte('created_at', startIso)
+                    .lt('created_at', endIso);
+                txRows = error ? [] : (data || []);
+            } catch (_) { txRows = []; }
+
+            let savedBalance = 0;
+            try {
+                const { data } = await supabase
+                    .from('cards')
+                    .select('type,initial_balance')
+                    .eq('user_id', activeUser?.id);
+                savedBalance = (data || [])
+                    .filter(c => c.type !== 'credit' && c.initial_balance != null)
+                    .reduce((sum, c) => sum + (Number(c.initial_balance) || 0), 0);
+            } catch (_) { savedBalance = 0; }
+
+            renderGoalsProjection(computeGoalsMonths(recurringRows, txRows), savedBalance);
+        }
+
+        function renderGoalsProjection(months, savedBalance) {
+            const balanceEl = document.getElementById('goals-saved-balance');
+            if (balanceEl) {
+                if (savedBalance > 0) {
+                    balanceEl.classList.remove('hidden');
+                    balanceEl.innerHTML = `Você tem <b class="text-ink">${moneyBR(savedBalance)}</b> guardado hoje em conta.`;
+                } else {
+                    balanceEl.classList.add('hidden');
+                }
+            }
+
+            const list = document.getElementById('goals-months-list');
+            if (!list) return;
+            list.innerHTML = months.map(mo => {
+                const label = new Date(mo.y, mo.m, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                const monthLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                const future = isFutureMonth(mo.y, mo.m);
+                const summary = mo.gap > 0
+                    ? `<span class="text-sm font-bold text-rose-600">Meta: falta gerar ${moneyBR(mo.gap)}</span><p class="text-[11px] text-muted mt-0.5">≈ ${moneyBR(mo.weeklyGap)} por semana</p>`
+                    : `<span class="text-sm font-bold text-emerald-600">Coberto! Sobra ${moneyBR(-mo.gap)}</span><p class="text-[11px] text-muted mt-0.5">Pode virar investimento ou reserva</p>`;
+                return `
+                    <div class="bg-canvas p-4 rounded-2xl border border-line space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="font-display font-bold text-sm">${monthLabel}</span>
+                            ${future ? '<span class="vr-chip bg-brand-soft text-brand">Previsão</span>' : ''}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div><span class="text-muted block">Contas fixas</span><span class="font-semibold text-rose-500">${moneyBR(mo.fixedTotal)}</span></div>
+                            <div><span class="text-muted block">Renda já garantida</span><span class="font-semibold text-emerald-600">${moneyBR(mo.incomeTotal)}</span></div>
+                        </div>
+                        <div class="pt-2 border-t border-line/70">${summary}</div>
+                    </div>`;
+            }).join('');
         }
 
         function renderTransactions() {
@@ -3461,6 +3609,7 @@
             document.getElementById('nav-btn-cards').addEventListener('click', () => switchTab('panel-cards', 'nav-btn-cards'));
             document.getElementById('nav-btn-debts').addEventListener('click', () => { switchTab('panel-debts', 'nav-btn-debts'); fetchDebts(); });
             document.getElementById('nav-btn-wishes').addEventListener('click', () => { switchTab('panel-wishes', 'nav-btn-wishes'); fetchWishes(); });
+            document.getElementById('nav-btn-goals').addEventListener('click', () => { switchTab('panel-goals', 'nav-btn-goals'); fetchGoalsProjection(); });
             document.getElementById('nav-btn-mentorship').addEventListener('click', () => { switchTab('panel-mentorship', 'nav-btn-mentorship'); fetchMentorshipClient(); });
             document.getElementById('nav-btn-partner').addEventListener('click', () => switchTab('panel-partner', 'nav-btn-partner'));
 
