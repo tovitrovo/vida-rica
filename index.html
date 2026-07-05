@@ -1157,6 +1157,25 @@
         </form>
     </div>
 
+    <!-- MODAL: editar saldo inicial da conta -->
+    <div id="modal-edit-card-balance" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink/40 backdrop-blur-sm px-6">
+        <form id="form-edit-card-balance" class="vr-card p-6 w-full max-w-xs space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 rounded-2xl bg-brand-soft text-brand flex items-center justify-center mx-auto mb-2"><i class="fa-solid fa-pen text-base"></i></div>
+                <h3 class="font-display font-bold text-lg">Editar saldo inicial</h3>
+                <p id="modal-edit-card-balance-name" class="text-sm text-muted mt-1"></p>
+            </div>
+            <div>
+                <label class="vr-label">Dinheiro em conta (R$)</label>
+                <input type="number" step="0.01" id="edit-card-balance-amount" required class="vr-field font-semibold">
+            </div>
+            <div class="space-y-2">
+                <button type="submit" class="vr-btn vr-btn-spectrum">Salvar</button>
+                <button type="button" id="modal-edit-card-balance-cancel" class="w-full text-xs text-muted font-medium pt-1">Cancelar</button>
+            </div>
+        </form>
+    </div>
+
     <!-- TOASTS -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none"></div>
 
@@ -2893,6 +2912,8 @@
         }
 
         // ===================== CARTÕES / CONTAS =====================
+        let cachedCards = [];
+
         async function fetchCards() {
             const userId = activeUser?.id;
             let cards = [];
@@ -2900,6 +2921,7 @@
                 const { data } = await supabase.from('cards').select('*').eq('user_id', userId).order('created_at', { ascending: true });
                 cards = data || [];
             } catch (_) { cards = []; }
+            cachedCards = cards;
 
             let selectHtml = '<option value="">Dinheiro / Pix à vista</option>';
             let listHtml = "";
@@ -2912,6 +2934,11 @@
                 const balanceLine = hasBalance
                     ? `<span class="text-xs text-muted">Saldo informado: <b class="text-ink">${moneyBR(c.initial_balance)}</b>${c.initial_balance_at ? ` (${new Date(c.initial_balance_at).toLocaleDateString('pt-BR')})` : ''}</span>`
                     : `<span class="text-xs text-muted">${tipoLabel}</span>`;
+                const editBalanceBtn = c.type !== 'credit'
+                    ? `<button type="button" data-edit-balance="${c.id}" class="text-muted hover:text-brand shrink-0 p-2 rounded-lg transition-colors" title="Editar saldo inicial">
+                            <i class="fa-solid fa-pen text-sm"></i>
+                        </button>`
+                    : '';
                 listHtml += `
                     <div class="flex justify-between items-center gap-2 bg-canvas p-3.5 rounded-2xl border border-line">
                         <div class="min-w-0 flex items-center gap-3">
@@ -2921,14 +2948,50 @@
                                 ${balanceLine}
                             </div>
                         </div>
-                        <button type="button" data-del-card="${c.id}" class="text-muted hover:text-rose-500 shrink-0 p-2 rounded-lg transition-colors" title="Excluir cartão ou conta">
-                            <i class="fa-solid fa-trash text-sm"></i>
-                        </button>
+                        <div class="flex items-center shrink-0">
+                            ${editBalanceBtn}
+                            <button type="button" data-del-card="${c.id}" class="text-muted hover:text-rose-500 shrink-0 p-2 rounded-lg transition-colors" title="Excluir cartão ou conta">
+                                <i class="fa-solid fa-trash text-sm"></i>
+                            </button>
+                        </div>
                     </div>`;
             });
 
             document.getElementById("tx-card").innerHTML = selectHtml;
             document.getElementById("cards-list").innerHTML = listHtml || `<p class="text-muted text-center py-6 text-sm">Nenhum cartão cadastrado.</p>`;
+        }
+
+        // ----- Edição do saldo inicial (dinheiro em conta) -----
+        let pendingEditCardBalance = null;
+
+        function openEditCardBalanceModal(cardId) {
+            const c = cachedCards.find(card => card.id === cardId);
+            if (!c) return;
+            pendingEditCardBalance = cardId;
+            document.getElementById('modal-edit-card-balance-name').innerText = c.name || '';
+            document.getElementById('edit-card-balance-amount').value = Number(c.initial_balance) || 0;
+            const m = document.getElementById('modal-edit-card-balance');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+
+        function closeEditCardBalanceModal() {
+            const m = document.getElementById('modal-edit-card-balance');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            pendingEditCardBalance = null;
+        }
+
+        async function saveEditCardBalance() {
+            if (!pendingEditCardBalance) return;
+            const amount = parseFloat(document.getElementById('edit-card-balance-amount').value);
+            if (!(amount >= 0)) { showToast('Informe um valor válido.', 'error'); return; }
+            const { error } = await supabase.from('cards')
+                .update({ initial_balance: amount, initial_balance_at: new Date().toISOString() })
+                .eq('id', pendingEditCardBalance).eq('user_id', activeUser?.id);
+            if (error) { showToast('Erro ao editar: ' + error.message, 'error'); return; }
+            showToast('Saldo atualizado.');
+            closeEditCardBalanceModal();
+            fetchCards();
+            fetchGoalsProjection();
         }
 
         async function deleteCardOrAccount(cardId) {
@@ -3932,8 +3995,15 @@
             });
             document.getElementById('cards-list').addEventListener('click', (e) => {
                 const del = e.target.closest('[data-del-card]');
-                if (del) deleteCardOrAccount(del.dataset.delCard);
+                if (del) { deleteCardOrAccount(del.dataset.delCard); return; }
+                const editBal = e.target.closest('[data-edit-balance]');
+                if (editBal) openEditCardBalanceModal(editBal.dataset.editBalance);
             });
+            document.getElementById('modal-edit-card-balance-cancel').addEventListener('click', closeEditCardBalanceModal);
+            document.getElementById('modal-edit-card-balance').addEventListener('click', (e) => {
+                if (e.target.id === 'modal-edit-card-balance') closeEditCardBalanceModal();
+            });
+            document.getElementById('form-edit-card-balance').addEventListener('submit', (e) => { e.preventDefault(); saveEditCardBalance(); });
 
             // ---- Salvar dívida pontual ----
             document.getElementById('form-debt').addEventListener('submit', async (e) => {

@@ -136,10 +136,41 @@ $$;
 revoke execute on function public.current_group_id() from public, anon;
 grant execute on function public.current_group_id() to authenticated;
 
+-- ============================================================================
+-- 4.1.2. FUNÇÃO AUXILIAR: public.is_group_member(target_user)
+--        Diz se target_user pertence ao mesmo grupo (casal/trisal) do usuário
+--        autenticado. SECURITY DEFINER porque profiles_select_own só deixa
+--        cada um ler a própria linha.
+-- ============================================================================
+create or replace function public.is_group_member(target_user uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+    select exists (
+        select 1
+        from public.profiles me
+        join public.profiles target on target.id = target_user
+        where me.id = auth.uid()
+          and coalesce(target.group_id, target.id) = coalesce(me.group_id, me.id)
+    );
+$$;
+
+revoke execute on function public.is_group_member(uuid) from public, anon;
+grant execute on function public.is_group_member(uuid) to authenticated;
+
 -- ---------- POLÍTICAS: cards ----------
+-- Leitura: as próprias contas/cartões OU as do grupo (parceria) — necessário
+-- para somar o "dinheiro em conta" de todo mundo na aba Metas.
 drop policy if exists "cards_select_own" on public.cards;
-create policy "cards_select_own" on public.cards
-    for select using (auth.uid() = user_id);
+drop policy if exists "cards_select_group" on public.cards;
+create policy "cards_select_group" on public.cards
+    for select using (
+        auth.uid() = user_id
+        or public.is_group_member(user_id)
+    );
 
 drop policy if exists "cards_insert_own" on public.cards;
 create policy "cards_insert_own" on public.cards
